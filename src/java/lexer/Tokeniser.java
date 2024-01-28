@@ -158,6 +158,13 @@ public class Tokeniser extends CompilerPass {
                     while (scanner.hasNext() && scanner.next() != '\n');
                     return nextToken(); // go to next token
                 }
+                if (hasNext && scanner.peek() == '*') {
+                    // consume all the following until a */
+                    while (scanner.hasNext()) {
+                        if (scanner.next() == '*' && scanner.hasNext() && scanner.next() == '/') break;
+                    }
+                    return nextToken(); // go to next token
+                }
                 return new Token(Token.Category.DIV, line, column);
             default:
                 return null;
