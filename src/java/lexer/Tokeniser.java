@@ -8,7 +8,12 @@ import util.CompilerPass;
 public class Tokeniser extends CompilerPass {
 
     private Scanner scanner;
-
+    // private static char[] digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    // private static char[] lowerCaseAlpha = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+    // private static char[] UpperCaseAlpha = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+    private static String digits = "0123456789";
+    private static String lowerCaseAlpha = "abcdefghijklmnopqrstuvwxzy";
+    private static String upperCaseAlpha = lowerCaseAlpha.toUpperCase();
 
     public Tokeniser(Scanner scanner) {
         this.scanner = scanner;
@@ -48,8 +53,26 @@ public class Tokeniser extends CompilerPass {
         // 2 char branches
         if ((temp = twoCharBranch(c, line, column)) != null) return temp;
         
+        // char literal
+        if ((temp = charLiteral(c, line, column)) != null) return temp;
         
+        // int literal
+        if ((temp = intLiteral(c, line, column)) != null) return temp;
+        
+        // #include
+        if ((temp = hashtagInclude(c, line, column)) != null) return temp;
+        
+        // string literal
+        if ((temp = stringLiteral(c, line, column)) != null) return temp;
+        
+        // keywords
+        if ((temp = keywords(c, line, column)) != null) return temp;
+
+        // identifiers
+        if ((temp = identifier(c, line, column)) != null) return temp;
+
         // ... to be completed
+        
 
 
         // if we reach this point, it means we did not recognise a valid token
@@ -135,5 +158,139 @@ public class Tokeniser extends CompilerPass {
             default:
                 return null;
         }
+    }
+
+    private int isEscapedChar() {
+        // check peek value, empty peek is covered within peek()
+        switch (scanner.peek()) {
+            case 'a':
+            case 'b':
+            case 'n':
+            case 'r':
+            case 't':
+            case '\\':
+            case '0':
+                return 0;
+            case '\'': // single quote
+                return 1;
+            case '\"': // double quote
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    private boolean isWhiteSpace(char c) {
+        return c == ' ';
+    }
+
+    private boolean isDigit(char c) {
+        return digits.indexOf(c) == -1;
+    }
+
+    private boolean isLowerCaseAlpha(char c) {
+        return lowerCaseAlpha.indexOf(c) == -1;
+    }
+
+    private boolean isUpperCaseAlpha(char c) {
+        return upperCaseAlpha.indexOf(c) == -1;
+    }
+
+    private Token hashtagInclude(char c, int line, int column) {
+        if (c != '#') return null;
+        char[] inc = {'i', 'n', 'c', 'l', 'u', 'd', 'e'};
+        char temp = scanner.next();
+        for (int i = 0; i < inc.length - 1; i++) {
+            if (temp != inc[i]) return new Token(Token.Category.INVALID, line, column);
+            temp = scanner.next();
+        }
+        return new Token(Token.Category.INCLUDE, line, column);
+    }
+
+    private boolean isSpecialCharWithoutQuote(char c, boolean hasSingleQuote) {
+        switch(c) {
+            case '\'':
+                if (hasSingleQuote) return false;
+            case '\"':
+                if (!hasSingleQuote) return false;
+            case '`':
+            case '~':
+            case '@':
+            case '!':
+            case '$':
+            case '#':
+            case '^':
+            case '*':
+            case '%':
+            case '&':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '<':
+            case '>':
+            case '+':
+            case '=':
+            case '_':
+            case '-':
+            case '|':
+            case '\\':
+            case ';':
+            case ':':
+            case ',':
+            case '.':
+            case '?':
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    private Token charLiteral(char c, int line, int column) {
+        if (c == '\'') {
+            if (!scanner.hasNext()) return new Token(Token.Category.EOF, column, line);
+            char next = scanner.next(); // go to
+
+            // escaped char case
+            if ((next == '\\' && isEscapedChar() != -1)) { scanner.next(); } // consume the escaped char
+            else if(!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next)) || isSpecialCharWithoutQuote(next, false)) return null;
+
+            if ((scanner.next()) == '\'') return new Token(Token.Category.CHAR_LITERAL, line, column); // check the end of '
+        }
+
+        return null;
+    }
+
+    private Token stringLiteral(char c, int line, int column) {
+        if (c == '\"') {
+            char next = scanner.next();
+            while (next != '"') {
+                if (!scanner.hasNext()) return new Token(Token.Category.EOF, column, line);
+
+                if ((next == '\\' && isEscapedChar() != -1)) { scanner.next(); } // consume the escaped char
+                else if(!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next) || isSpecialCharWithoutQuote(next, true))) return null;
+
+                next = scanner.next(); // go to next
+            }
+            return new Token(Token.Category.STRING_LITERAL, line, column);
+        }
+
+        return null;
+    }
+
+    private Token intLiteral(char c, int line, int column) {
+        if (!isDigit(c)) return null; // if not digit
+        while (isDigit(scanner.next())); // consume all following digits
+        return new Token(Token.Category.INT_LITERAL, line, column);
+    }
+
+    private Token keywords(char c, int line, int column) {
+        return null;
+    }
+
+    private Token identifier(char c, int line, int column) {
+        return null;
     }
 }
