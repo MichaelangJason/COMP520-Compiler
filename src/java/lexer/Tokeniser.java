@@ -73,8 +73,6 @@ public class Tokeniser extends CompilerPass {
 
         // ... to be completed
         
-
-
         // if we reach this point, it means we did not recognise a valid token
         error(c, line, column);
         return new Token(Token.Category.INVALID, line, column);
@@ -88,8 +86,6 @@ public class Tokeniser extends CompilerPass {
                 return new Token(Token.Category.MINUS, line, column);
             case '*':
                 return new Token(Token.Category.ASTERIX, line, column);
-            case '/':
-                return new Token(Token.Category.DIV, line, column);
             case '%':
                 return new Token(Token.Category.REM, line, column);
             case '{':
@@ -116,45 +112,53 @@ public class Tokeniser extends CompilerPass {
     }
 
     private Token twoCharBranch(char c, int line, int column) {
+        boolean hasNext = scanner.hasNext();
         switch (c) {
             case '|':
-                if (scanner.peek() == '|') {
+                if (hasNext && scanner.peek() == '|') {
                     scanner.next(); // consume next | char
                     return new Token(Token.Category.LOGOR, line, column);
                 }
                 error(c, line, column);
                 return new Token(Token.Category.INVALID, line, column);
             case '&':
-                if (scanner.peek() == '&') {
+                if (hasNext && scanner.peek() == '&') {
                     scanner.next(); // consume next & char
                     return new Token(Token.Category.LOGAND, line, column);
                 }
                 return new Token(Token.Category.AND, line, column);
             case '=':
-                if (scanner.peek() == '=') {
+                if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
                     return new Token(Token.Category.EQ, line, column);
                 }
                 return new Token(Token.Category.ASSIGN, line, column);
             case '!':
-                if (scanner.peek() == '=') {
+                if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
                     return new Token(Token.Category.NE, line, column);
                 }
                 error(c, line, column);
                 return new Token(Token.Category.INVALID, line, column);
             case '<':
-                if (scanner.peek() == '=') {
+                if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
                     return new Token(Token.Category.LE, line, column);
                 }
                 return new Token(Token.Category.LT, line, column);
             case '>':
-                if (scanner.peek() == '=') {
+                if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
                     return new Token(Token.Category.GE, line, column);
                 }
                 return new Token(Token.Category.GT, line, column);
+            case '/':
+                if (hasNext && scanner.peek() == '/') {
+                    // consume all the following until a \n
+                    while (scanner.hasNext() && scanner.next() != '\n');
+                    return nextToken(); // go to next token
+                }
+                return new Token(Token.Category.DIV, line, column);
             default:
                 return null;
         }
@@ -162,6 +166,7 @@ public class Tokeniser extends CompilerPass {
 
     private int isEscapedChar() {
         // check peek value, empty peek is covered within peek()
+        if (!scanner.hasNext()) return -1;
         switch (scanner.peek()) {
             case 'a':
             case 'b':
@@ -185,7 +190,7 @@ public class Tokeniser extends CompilerPass {
     }
 
     private boolean isDigit(char c) {
-        return digits.indexOf(c) == -1;
+        return digits.indexOf(c) != -1;
     }
 
     private boolean isLowerCaseAlpha(char c) {
@@ -198,10 +203,12 @@ public class Tokeniser extends CompilerPass {
 
     private Token hashtagInclude(char c, int line, int column) {
         if (c != '#') return null;
+        if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
         char[] inc = {'i', 'n', 'c', 'l', 'u', 'd', 'e'};
         char temp = scanner.next();
+
         for (int i = 0; i < inc.length - 1; i++) {
-            if (temp != inc[i]) return new Token(Token.Category.INVALID, line, column);
+            if (temp != inc[i] || !scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
             temp = scanner.next();
         }
         return new Token(Token.Category.INCLUDE, line, column);
@@ -250,13 +257,15 @@ public class Tokeniser extends CompilerPass {
     
     private Token charLiteral(char c, int line, int column) {
         if (c == '\'') {
-            if (!scanner.hasNext()) return new Token(Token.Category.EOF, column, line);
+            if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
             char next = scanner.next(); // go to
 
             // escaped char case
-            if ((next == '\\' && isEscapedChar() != -1)) { scanner.next(); } // consume the escaped char
-            else if(!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next)) || isSpecialCharWithoutQuote(next, false)) return null;
-
+            if ((next == '\\' && isEscapedChar() != -1)) {
+                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
+                scanner.next(); // consume the escaped char
+            } else if (!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next)) || isSpecialCharWithoutQuote(next, false)) return null;
+            
             if ((scanner.next()) == '\'') return new Token(Token.Category.CHAR_LITERAL, line, column); // check the end of '
         }
 
@@ -265,13 +274,16 @@ public class Tokeniser extends CompilerPass {
 
     private Token stringLiteral(char c, int line, int column) {
         if (c == '\"') {
+            if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
             char next = scanner.next();
+            
             while (next != '"') {
-                if (!scanner.hasNext()) return new Token(Token.Category.EOF, column, line);
+                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
 
                 if ((next == '\\' && isEscapedChar() != -1)) { scanner.next(); } // consume the escaped char
                 else if(!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next) || isSpecialCharWithoutQuote(next, true))) return null;
 
+                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
                 next = scanner.next(); // go to next
             }
             return new Token(Token.Category.STRING_LITERAL, line, column);
@@ -282,7 +294,10 @@ public class Tokeniser extends CompilerPass {
 
     private Token intLiteral(char c, int line, int column) {
         if (!isDigit(c)) return null; // if not digit
-        while (isDigit(scanner.next())); // consume all following digits
+        do {
+            if (!scanner.hasNext()) break;
+        } while (isDigit(scanner.peek()) && isDigit(scanner.next())); // lazy consume all following digits
+
         return new Token(Token.Category.INT_LITERAL, line, column);
     }
 
