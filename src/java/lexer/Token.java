@@ -70,7 +70,7 @@ public class Token {
         // operators
         PLUS,    // '+'
         MINUS,   // '-'
-        ASTERISK, // '*'  // can be used for multiplication or pointers
+        ASTERIX, // '*'  // can be used for multiplication or pointers
         DIV,     // '/'
         REM,     // '%'
         AND,     // '&'
