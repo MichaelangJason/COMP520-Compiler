@@ -10,9 +10,6 @@ import util.CompilerPass;
 public class Tokeniser extends CompilerPass {
 
     private Scanner scanner;
-    // private static char[] digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-    // private static char[] lowerCaseAlpha = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-    // private static char[] UpperCaseAlpha = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
     private static String digits = "0123456789";
     private static String lowerCaseAlpha = "abcdefghijklmnopqrstuvwxzy";
     private static String upperCaseAlpha = lowerCaseAlpha.toUpperCase();
@@ -22,16 +19,11 @@ public class Tokeniser extends CompilerPass {
     }
 
     private void error(char c, int line, int col) {
-        String msg = "Lexing error: unrecognised character ("+c+") at "+line+":"+col;
+        String msg = "---Lexing error: unrecognised character ("+c+") at "+line+":"+col+"---";
         System.out.println(msg);
         incError();
     }
 
-
-
-    /*
-     * To be completed
-     */
     public Token nextToken() {
 
         int line = scanner.getLine();
@@ -50,7 +42,7 @@ public class Tokeniser extends CompilerPass {
         Token temp; // initialized to null
 
         // no branch
-        if ((temp = noBranch(c, line, column)) != null) return temp;
+        if ((temp = singleChar(c, line, column)) != null) return temp;
         
         // 2 char branches
         if ((temp = twoCharBranch(c, line, column)) != null) return temp;
@@ -72,15 +64,17 @@ public class Tokeniser extends CompilerPass {
 
         // identifiers
         if ((temp = identifier(c, line, column)) != null) return temp;
-
-        // ... to be completed
         
         // if we reach this point, it means we did not recognise a valid token
+        return invalidWithMsg(c, line, column);
+    }
+
+    private Token invalidWithMsg(char c, int line, int column) {
         error(c, line, column);
         return new Token(Token.Category.INVALID, line, column);
     }
 
-    private Token noBranch(char c, int line, int column) {
+    private Token singleChar(char c, int line, int column) {
         switch(c) {
             case '+':
                 return new Token(Token.Category.PLUS, line, column);
@@ -121,8 +115,7 @@ public class Tokeniser extends CompilerPass {
                     scanner.next(); // consume next | char
                     return new Token(Token.Category.LOGOR, line, column);
                 }
-                error(c, line, column);
-                return new Token(Token.Category.INVALID, line, column);
+                return invalidWithMsg(c, line, column);
             case '&':
                 if (hasNext && scanner.peek() == '&') {
                     scanner.next(); // consume next & char
@@ -140,8 +133,7 @@ public class Tokeniser extends CompilerPass {
                     scanner.next(); // consume next = char
                     return new Token(Token.Category.NE, line, column);
                 }
-                error(c, line, column);
-                return new Token(Token.Category.INVALID, line, column);
+                return invalidWithMsg(c, line, column);
             case '<':
                 if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
@@ -212,23 +204,23 @@ public class Tokeniser extends CompilerPass {
 
     private Token hashtagInclude(char c, int line, int column) {
         if (c != '#') return null;
-        if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
         char[] inc = {'i', 'n', 'c', 'l', 'u', 'd', 'e'};
-        char temp = scanner.next();
-
-        for (int i = 0; i < inc.length - 1; i++) {
-            if (temp != inc[i] || !scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-            temp = scanner.next();
+        int i;
+        for (i = 0; i < inc.length; i++) {
+            if (!checkNext(inc[i]) || !scanner.hasNext()) break;
+            scanner.next();
         }
-        return new Token(Token.Category.INCLUDE, line, column);
+
+        if (i == inc.length) return new Token(Token.Category.INCLUDE, line, column);
+        else return null;
     }
 
     private boolean isSpecialCharWithoutQuote(char c, boolean hasSingleQuote) {
         switch(c) {
             case '\'':
-                if (hasSingleQuote) return false;
+                return hasSingleQuote;
             case '\"':
-                if (!hasSingleQuote) return false;
+                return !hasSingleQuote;
             case '`':
             case '~':
             case '@':
@@ -252,7 +244,7 @@ public class Tokeniser extends CompilerPass {
             case '_':
             case '-':
             case '|':
-            case '\\':
+            case '/':
             case ';':
             case ':':
             case ',':
@@ -263,19 +255,24 @@ public class Tokeniser extends CompilerPass {
                 return false;
         }
     }
+
+    private boolean isLegalChar(char c, boolean hasSingleQuote) {
+        return isWhiteSpace(c) || isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || isDigit(c) || isSpecialCharWithoutQuote(c, hasSingleQuote);
+    }
     
     private Token charLiteral(char c, int line, int column) {
-        if (c == '\'') {
-            if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-            char next = scanner.next(); // go to
+        if (c == '\'' && scanner.hasNext()) {
+            char t = scanner.peek();
 
             // escaped char case
-            if ((next == '\\' && isEscapedChar() != -1)) {
-                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-                scanner.next(); // consume the escaped char
-            } else if (!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next)) || isSpecialCharWithoutQuote(next, false)) return null;
-            
-            if ((scanner.next()) == '\'') return new Token(Token.Category.CHAR_LITERAL, line, column); // check the end of '
+            if (t == '\\') {
+                scanner.next(); // consume \
+                if (isEscapedChar() == -1) return invalidWithMsg(c, line, column);
+            } else if (!isLegalChar(t, false)) return invalidWithMsg(c, line, column);
+            scanner.next(); // consume it
+            t = scanner.peek();
+            if (t == '\'') { scanner.next(); return new Token(Token.Category.CHAR_LITERAL, line, column); } // check the end of '
+            else return invalidWithMsg(c, line, column);
         }
 
         return null;
@@ -283,19 +280,21 @@ public class Tokeniser extends CompilerPass {
 
     private Token stringLiteral(char c, int line, int column) {
         if (c == '\"') {
-            if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-            char next = scanner.next();
-            
-            while (next != '"') {
-                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-
-                if ((next == '\\' && isEscapedChar() != -1)) { scanner.next(); } // consume the escaped char
-                else if(!(isWhiteSpace(next) || isLowerCaseAlpha(next) || isUpperCaseAlpha(next) || isDigit(next) || isSpecialCharWithoutQuote(next, true))) return null;
-
-                if (!scanner.hasNext()) return new Token(Token.Category.INVALID, line, column);
-                next = scanner.next(); // go to next
+            while (scanner.hasNext()) {
+                char t = scanner.peek();
+                if (t == '\"') { scanner.next(); return new Token(Token.Category.STRING_LITERAL, line, column); } // consume " and end
+                if (t == '\\') { // escaped char
+                    scanner.next(); // consume \
+                    if (isEscapedChar() == -1) break;
+                    scanner.next(); // consume and continue
+                    continue;
+                }
+                if (!isLegalChar(t, true)) break;
+                scanner.next(); // consume it
             }
-            return new Token(Token.Category.STRING_LITERAL, line, column);
+
+            System.out.println("---------------" + scanner.peek());
+            return invalidWithMsg(c, line, column);
         }
 
         return null;
@@ -303,9 +302,11 @@ public class Tokeniser extends CompilerPass {
 
     private Token intLiteral(char c, int line, int column) {
         if (!isDigit(c)) return null; // if not digit
-        do {
-            if (!scanner.hasNext()) break;
-        } while (isDigit(scanner.peek()) && isDigit(scanner.next())); // lazy consume all following digits
+        // consume all following digits
+        while (scanner.hasNext()) { 
+            if (!isDigit(scanner.peek())) break;
+            scanner.next();
+        }
 
         return new Token(Token.Category.INT_LITERAL, line, column);
     }
@@ -323,13 +324,9 @@ public class Tokeniser extends CompilerPass {
     }
 
     private Token keywords(char c, int line, int column) {
-        // boolean hasNext = scanner.hasNext();
-        if (!scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
         // check keyword starters
-        // char next = scanner.peek();
-        // if (!isLowerCaseAlpha(scanner.peek())) return null;
-        // scanner.next(); // consume the starting lowercase alpha
-        Supplier<Boolean> isIllegalIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
+        if (!isLowerCaseAlpha(c) || !scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
+        Supplier<Boolean> isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
         BiFunction<String, Token.Category, Token> matchKeyword = (String keyword, Token.Category desire) -> {
             assert keyword.length() > 0;
             char[] rem = keyword.toCharArray();
@@ -339,7 +336,7 @@ public class Tokeniser extends CompilerPass {
                 scanner.next(); // consume it
             }
             
-            if (i == rem.length && isIllegalIdentifier.get()) return new Token(desire, line, column);
+            if (i == rem.length && isNotIdentifier.get()) return new Token(desire, line, column);
             else return null;
         };     
 
@@ -348,100 +345,31 @@ public class Tokeniser extends CompilerPass {
             case 'i': // int, if
                 // int
                 if ((temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
+                // if
                 if ((temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
-                // if (next == 'n' && checkNext('t')) {
-                //     if ((temp = matchKeyword.apply(new char[] {'t'}, Token.Category.INT)) != null) return temp;
-
-                //     // scanner.next(); // consume t
-                //     // if (isIllegalIdentifier.get())
-                //     //     return new Token(Token.Category.INT, line, column);
-                // }
-                // // if
-                // if (next == 'f' && isIllegalIdentifier.get()) {
-                //     return new Token(Token.Category.IF, line, column);
-                // }
                 return null;
             case 'v': // void
                 if ((temp = matchKeyword.apply("void", Token.Category.VOID)) != null) return temp;
-                // if (next == 'o' && checkNext('i')) {
-                //     scanner.next(); // consume i
-                //     if (checkNext('d')) {
-                //         scanner.next(); // consume d
-                //         if (isIllegalIdentifier.get())
-                //             return new Token(Token.Category.INT, line, column);
-                //     }
-                // }
                 return null;
             case 'c': // char, continue
                 // char
                 if ((temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
-                // if (next == 'h' && checkNext('a')) {
-                //     scanner.next(); // consume a
-                //     if (checkNext('r')) {
-                //         scanner.next(); // consume r
-                //         if (isIllegalIdentifier.get())
-                //             return new Token(Token.Category.CHAR, line, column);
-                //     }
-                // }
-
                 // continue
                 if ((temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
-                // if (next == 'o' && checkNext('n')) {
-                //     scanner.next(); // consume n
-                //     char[] rem = {'n', 't', 'i', 'n', 'u', 'e'};
-                //     int i;
-                //     for (i = 0; i < rem.length; i++) {
-                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
-                //         scanner.next(); // consume it
-                //     }
-                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
-                //         return new Token(Token.Category.CONTINUE, line, column);
-                // }
                 return null;
             case 'e': // else
                 if ((temp = matchKeyword.apply("else", Token.Category.ELSE)) != null) return temp;
-
-                // if (next == 'l' && checkNext('s')) {
-                //     scanner.next(); // consume s
-                //     if (checkNext('e')) {
-                //         scanner.next(); // consume e
-                //         if (isIllegalIdentifier.get())
-                //             return new Token(Token.Category.ELSE, line, column);
-                //     }
-                // }
                 return null;
             case 'w': // while
                 if ((temp = matchKeyword.apply("while", Token.Category.WHILE)) != null) return temp;
-
-                // if (next == 'h' && checkNext('i')) {
-                //     scanner.next(); // consume i
-                //     char[] rem = {'l', 'e'};
-                //     int i;
-                //     for (i = 0; i < rem.length; i++) {
-                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
-                //         scanner.next(); // consume it
-                //     }
-                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
-                //         return new Token(Token.Category.WHILE, line, column);
-                // } 
                 return null;
             case 'r': // return
                 if ((temp = matchKeyword.apply("return", Token.Category.RETURN)) != null) return temp;
-
-                // if (next == 'e' && checkNext('t')) {
-                //     scanner.next(); // consume i
-                //     char[] rem = {'u', 'r', 'n'};
-                //     int i;
-                //     for (i = 0; i < rem.length; i++) {
-                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
-                //         scanner.next(); // consume it
-                //     }
-                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
-                //         return new Token(Token.Category.WHILE, line, column);
-                // } 
                 return null;
             case 's': // struct, sizeof
+                // struct
                 if ((temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
+                // sizeof
                 if ((temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
                 return null;
             case 'b': // break
@@ -454,11 +382,15 @@ public class Tokeniser extends CompilerPass {
 
     private Token identifier(char c, int line, int column) {
         if (!matchIdentifier(c, false)) return null;
-        /*
+        /* possible situations:
          * 1. continue from where keywords() left
          * 2. scanner is still at c
-         * 
          */
-        return null;
+        while (scanner.hasNext()) {
+            if (!matchIdentifier(scanner.peek(), true)) break;
+            scanner.next(); // consume it
+        }
+        
+        return new Token(Token.Category.IDENTIFIER, line, column);
     }
 }
