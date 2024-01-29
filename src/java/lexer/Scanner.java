@@ -17,6 +17,10 @@ public class Scanner {
         input = new BufferedReader(new FileReader(source));
     }
 
+    // for testing purpose
+    public Scanner(String testString) {
+        input = new BufferedReader(new StringReader(testString));
+    }
 
     public int getColumn() {
         return column;

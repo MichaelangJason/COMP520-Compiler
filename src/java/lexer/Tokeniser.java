@@ -24,6 +24,12 @@ public class Tokeniser extends CompilerPass {
         incError();
     }
 
+    private void error(String acc, int line, int col) {
+        String msg = "---Lexing error: unrecognised string ("+acc+") at "+line+":"+col+"---";
+        System.out.println(msg);
+        incError();
+    }
+
     public Token nextToken() {
 
         int line = scanner.getLine();
@@ -71,37 +77,43 @@ public class Tokeniser extends CompilerPass {
 
     private Token invalidWithMsg(char c, int line, int column) {
         error(c, line, column);
-        return new Token(Token.Category.INVALID, line, column);
+        return new Token(Token.Category.INVALID, String.valueOf(c), line, column);
+    }
+
+    private Token invalidWithMsg(String acc, int line, int column) {
+        error(acc, line, column);
+        return new Token(Token.Category.INVALID, acc, line, column);
+
     }
 
     private Token singleChar(char c, int line, int column) {
         switch(c) {
             case '+':
-                return new Token(Token.Category.PLUS, line, column);
+                return new Token(Token.Category.PLUS, "+", line, column);
             case '-':
-                return new Token(Token.Category.MINUS, line, column);
+                return new Token(Token.Category.MINUS, "-", line, column);
             case '*':
-                return new Token(Token.Category.ASTERIX, line, column);
+                return new Token(Token.Category.ASTERIX, "*", line, column);
             case '%':
-                return new Token(Token.Category.REM, line, column);
+                return new Token(Token.Category.REM, "%", line, column);
             case '{':
-                return new Token(Token.Category.LBRA, line, column);
+                return new Token(Token.Category.LBRA, "{", line, column);
             case '}':
-                return new Token(Token.Category.RBRA, line, column);
+                return new Token(Token.Category.RBRA, "}", line, column);
             case '(':
-                return new Token(Token.Category.LPAR, line, column);
+                return new Token(Token.Category.LPAR, "(", line, column);
             case ')':
-                return new Token(Token.Category.RPAR, line, column);
+                return new Token(Token.Category.RPAR, ")", line, column);
             case '[':
-                return new Token(Token.Category.LSBR, line, column);
+                return new Token(Token.Category.LSBR, "[", line, column);
             case ']':
-                return new Token(Token.Category.RSBR, line, column);
+                return new Token(Token.Category.RSBR, "]", line, column);
             case ';':
-                return new Token(Token.Category.SC, line, column);
+                return new Token(Token.Category.SC, ";", line, column);
             case ',':
-                return new Token(Token.Category.COMMA, line, column);
+                return new Token(Token.Category.COMMA, ",", line, column);
             case '.':
-                return new Token(Token.Category.DOT, line, column);
+                return new Token(Token.Category.DOT, ".", line, column);
             default:
                 return null;
         }
@@ -113,39 +125,39 @@ public class Tokeniser extends CompilerPass {
             case '|':
                 if (hasNext && scanner.peek() == '|') {
                     scanner.next(); // consume next | char
-                    return new Token(Token.Category.LOGOR, line, column);
+                    return new Token(Token.Category.LOGOR, "||", line, column);
                 }
                 return invalidWithMsg(c, line, column);
             case '&':
                 if (hasNext && scanner.peek() == '&') {
                     scanner.next(); // consume next & char
-                    return new Token(Token.Category.LOGAND, line, column);
+                    return new Token(Token.Category.LOGAND, "&&", line, column);
                 }
-                return new Token(Token.Category.AND, line, column);
+                return new Token(Token.Category.AND, "&", line, column);
             case '=':
                 if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
-                    return new Token(Token.Category.EQ, line, column);
+                    return new Token(Token.Category.EQ, "==", line, column);
                 }
-                return new Token(Token.Category.ASSIGN, line, column);
+                return new Token(Token.Category.ASSIGN, "=", line, column);
             case '!':
                 if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
-                    return new Token(Token.Category.NE, line, column);
+                    return new Token(Token.Category.NE, "!=", line, column);
                 }
                 return invalidWithMsg(c, line, column);
             case '<':
                 if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
-                    return new Token(Token.Category.LE, line, column);
+                    return new Token(Token.Category.LE, "<=", line, column);
                 }
-                return new Token(Token.Category.LT, line, column);
+                return new Token(Token.Category.LT, "<", line, column);
             case '>':
                 if (hasNext && scanner.peek() == '=') {
                     scanner.next(); // consume next = char
-                    return new Token(Token.Category.GE, line, column);
+                    return new Token(Token.Category.GE, ">=", line, column);
                 }
-                return new Token(Token.Category.GT, line, column);
+                return new Token(Token.Category.GT, ">", line, column);
             case '/':
                 if (hasNext && scanner.peek() == '/') {
                     // consume all the following until a \n
@@ -159,13 +171,13 @@ public class Tokeniser extends CompilerPass {
                     }
                     return nextToken(); // go to next token
                 }
-                return new Token(Token.Category.DIV, line, column);
+                return new Token(Token.Category.DIV, "/", line, column);
             default:
                 return null;
         }
     }
 
-    private int isEscapedChar() {
+    private int isEscapedChar(StringBuilder acc) {
         // check peek value, empty peek is covered within peek()
         if (!scanner.hasNext()) return -1;
         switch (scanner.peek()) {
@@ -182,6 +194,7 @@ public class Tokeniser extends CompilerPass {
             case '\"': // double quote
                 return 2;
             default:
+                acc.append(scanner.peek());
                 return -1;
         }
     }
@@ -211,7 +224,7 @@ public class Tokeniser extends CompilerPass {
             scanner.next();
         }
 
-        if (i == inc.length) return new Token(Token.Category.INCLUDE, line, column);
+        if (i == inc.length) return new Token(Token.Category.INCLUDE, "#include", line, column);
         else return null;
     }
 
@@ -262,17 +275,21 @@ public class Tokeniser extends CompilerPass {
     
     private Token charLiteral(char c, int line, int column) {
         if (c == '\'' && scanner.hasNext()) {
+            StringBuilder acc = new StringBuilder();
+            acc.append('\'');
             char t = scanner.peek();
 
             // escaped char case
             if (t == '\\') {
-                scanner.next(); // consume \
-                if (isEscapedChar() == -1) return invalidWithMsg(c, line, column);
+                acc.append(scanner.next()); // consume \
+                if (isEscapedChar(acc) == -1) return invalidWithMsg(c, line, column);
             } else if (!isLegalChar(t, false)) return invalidWithMsg(c, line, column);
-            scanner.next(); // consume it
+
+            acc.append(scanner.next()); // consume it
             t = scanner.peek();
-            if (t == '\'') { scanner.next(); return new Token(Token.Category.CHAR_LITERAL, line, column); } // check the end of '
-            else return invalidWithMsg(c, line, column);
+
+            if (t == '\'') { acc.append(scanner.next()); return new Token(Token.Category.CHAR_LITERAL, acc.toString(), line, column); } // check, consume and return
+            else return invalidWithMsg(acc.toString(), line, column);
         }
 
         return null;
@@ -280,21 +297,23 @@ public class Tokeniser extends CompilerPass {
 
     private Token stringLiteral(char c, int line, int column) {
         if (c == '\"') {
+            StringBuilder acc = new StringBuilder();
+            acc.append('\"');
             while (scanner.hasNext()) {
                 char t = scanner.peek();
-                if (t == '\"') { scanner.next(); return new Token(Token.Category.STRING_LITERAL, line, column); } // consume " and end
+                if (t == '\"') { acc.append(scanner.next()); return new Token(Token.Category.STRING_LITERAL, acc.toString(), line, column); } // consume " and end
                 if (t == '\\') { // escaped char
-                    scanner.next(); // consume \
-                    if (isEscapedChar() == -1) break;
-                    scanner.next(); // consume and continue
+                    acc.append(scanner.next()); // consume \
+                    if (isEscapedChar(acc) == -1) break;
+                    acc.append(scanner.next()); // consume and continue
                     continue;
                 }
                 if (!isLegalChar(t, true)) break;
-                scanner.next(); // consume it
+                acc.append(scanner.next()); // consume it
             }
 
             System.out.println("---------------" + scanner.peek());
-            return invalidWithMsg(c, line, column);
+            return invalidWithMsg(acc.toString(), line, column);
         }
 
         return null;
@@ -302,13 +321,15 @@ public class Tokeniser extends CompilerPass {
 
     private Token intLiteral(char c, int line, int column) {
         if (!isDigit(c)) return null; // if not digit
+        StringBuilder acc = new StringBuilder();
+        acc.append(c);
         // consume all following digits
         while (scanner.hasNext()) { 
             if (!isDigit(scanner.peek())) break;
-            scanner.next();
+            acc.append(scanner.next());
         }
 
-        return new Token(Token.Category.INT_LITERAL, line, column);
+        return new Token(Token.Category.INT_LITERAL, acc.toString(), line, column);
     }
 
     private boolean matchIdentifier(char c, boolean notFirst) {
@@ -326,71 +347,80 @@ public class Tokeniser extends CompilerPass {
     private Token keywords(char c, int line, int column) {
         // check keyword starters
         if (!isLowerCaseAlpha(c) || !scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
+        StringBuilder acc = new StringBuilder();
         Supplier<Boolean> isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
         BiFunction<String, Token.Category, Token> matchKeyword = (String keyword, Token.Category desire) -> {
             assert keyword.length() > 0;
             char[] rem = keyword.toCharArray();
+            acc.append(rem[0]);
             int i;
             for (i = 1; i < rem.length; i++) {
                 if (!checkNext(rem[i]) || !scanner.hasNext()) break;
-                scanner.next(); // consume it
+                acc.append(scanner.next()); // consume it
             }
             
-            if (i == rem.length && isNotIdentifier.get()) return new Token(desire, line, column);
+            if (i == rem.length && isNotIdentifier.get()) return new Token(desire, acc.toString(), line, column);
             else return null;
         };     
 
-        Token temp = null;
+        Token temp; // initialized to null;
         switch(c) {
             case 'i': // int, if
                 // int
-                if ((temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
+                if (checkNext('n') && (temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
                 // if
-                if ((temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
-                return null;
+                if (checkNext('f') && (temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
+                break;
             case 'v': // void
                 if ((temp = matchKeyword.apply("void", Token.Category.VOID)) != null) return temp;
-                return null;
+                break;
             case 'c': // char, continue
                 // char
-                if ((temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
+                if (checkNext('h') && (temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
                 // continue
-                if ((temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
-                return null;
+                if (checkNext('o') && (temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
+                break;
             case 'e': // else
                 if ((temp = matchKeyword.apply("else", Token.Category.ELSE)) != null) return temp;
-                return null;
+                break;
             case 'w': // while
                 if ((temp = matchKeyword.apply("while", Token.Category.WHILE)) != null) return temp;
-                return null;
+                break;
             case 'r': // return
                 if ((temp = matchKeyword.apply("return", Token.Category.RETURN)) != null) return temp;
-                return null;
+                break;
             case 's': // struct, sizeof
                 // struct
-                if ((temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
+                if (checkNext('t') && (temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
                 // sizeof
-                if ((temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
-                return null;
+                if (checkNext('i') && (temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
+                break;
             case 'b': // break
                 if ((temp = matchKeyword.apply("break", Token.Category.BREAK)) != null) return temp;
-                return null;
+                break;
             default:
                 return null;
         }
+        return identifier(c, line, column, acc);
     }
 
-    private Token identifier(char c, int line, int column) {
+    private Token identifier(char c, int line, int column, StringBuilder acc) {
         if (!matchIdentifier(c, false)) return null;
+        if (acc.length() == 0) acc.append(c);
         /* possible situations:
          * 1. continue from where keywords() left
          * 2. scanner is still at c
          */
         while (scanner.hasNext()) {
             if (!matchIdentifier(scanner.peek(), true)) break;
-            scanner.next(); // consume it
+            acc.append(scanner.next()); // consume it
         }
         
-        return new Token(Token.Category.IDENTIFIER, line, column);
+        return new Token(Token.Category.IDENTIFIER, acc.toString(), line, column);
+    }
+
+    private Token identifier(char c, int line, int column) {
+        StringBuilder acc = new StringBuilder();
+        return identifier(c, line, column, acc);
     }
 }
