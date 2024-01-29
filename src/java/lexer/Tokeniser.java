@@ -10,9 +10,9 @@ import util.CompilerPass;
 public class Tokeniser extends CompilerPass {
 
     private Scanner scanner;
-    private static String digits = "0123456789";
-    private static String lowerCaseAlpha = "abcdefghijklmnopqrstuvwxzy";
-    private static String upperCaseAlpha = lowerCaseAlpha.toUpperCase();
+    private static final String DIGITS = "0123456789";
+    private static final String LOWERCASEALPHA = "abcdefghijklmnopqrstuvwxzy";
+    private static final String UPPERCASEALPHA = LOWERCASEALPHA.toUpperCase();
 
     public Tokeniser(Scanner scanner) {
         this.scanner = scanner;
@@ -204,28 +204,30 @@ public class Tokeniser extends CompilerPass {
     }
 
     private boolean isDigit(char c) {
-        return digits.indexOf(c) != -1;
+        return DIGITS.indexOf(c) != -1;
     }
 
     private boolean isLowerCaseAlpha(char c) {
-        return lowerCaseAlpha.indexOf(c) != -1;
+        return LOWERCASEALPHA.indexOf(c) != -1;
     }
 
     private boolean isUpperCaseAlpha(char c) {
-        return upperCaseAlpha.indexOf(c) != -1;
+        return UPPERCASEALPHA.indexOf(c) != -1;
     }
 
     private Token hashtagInclude(char c, int line, int column) {
         if (c != '#') return null;
+        StringBuilder acc = new StringBuilder(); acc.append(c);
+        
         char[] inc = {'i', 'n', 'c', 'l', 'u', 'd', 'e'};
         int i;
         for (i = 0; i < inc.length; i++) {
             if (!checkNext(inc[i]) || !scanner.hasNext()) break;
-            scanner.next();
+            acc.append(scanner.next());
         }
 
-        if (i == inc.length) return new Token(Token.Category.INCLUDE, "#include", line, column);
-        else return null;
+        if (i == inc.length) return new Token(Token.Category.INCLUDE, acc.toString(), line, column);
+        else return invalidWithMsg(acc.toString(), line, column);
     }
 
     private boolean isSpecialCharWithoutQuote(char c, boolean hasSingleQuote) {
@@ -269,7 +271,7 @@ public class Tokeniser extends CompilerPass {
         }
     }
 
-    private boolean isLegalChar(char c, boolean hasSingleQuote) {
+    private boolean isLegalLiteralChar(char c, boolean hasSingleQuote) {
         return isWhiteSpace(c) || isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || isDigit(c) || isSpecialCharWithoutQuote(c, hasSingleQuote);
     }
     
@@ -283,7 +285,7 @@ public class Tokeniser extends CompilerPass {
             if (t == '\\') {
                 acc.append(scanner.next()); // consume \
                 if (isEscapedChar(acc) == -1) return invalidWithMsg(c, line, column);
-            } else if (!isLegalChar(t, false)) return invalidWithMsg(c, line, column);
+            } else if (!isLegalLiteralChar(t, false)) return invalidWithMsg(c, line, column);
 
             acc.append(scanner.next()); // consume it
             t = scanner.peek();
@@ -308,7 +310,7 @@ public class Tokeniser extends CompilerPass {
                     acc.append(scanner.next()); // consume and continue
                     continue;
                 }
-                if (!isLegalChar(t, true)) break;
+                if (!isLegalLiteralChar(t, true)) break;
                 acc.append(scanner.next()); // consume it
             }
 
@@ -345,14 +347,16 @@ public class Tokeniser extends CompilerPass {
     }
 
     private Token keywords(char c, int line, int column) {
-        // check keyword starters
+        // check start symbol, only starting with lowercase alphabet and following sequence > 1
         if (!isLowerCaseAlpha(c) || !scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
         StringBuilder acc = new StringBuilder();
         Supplier<Boolean> isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
         BiFunction<String, Token.Category, Token> matchKeyword = (String keyword, Token.Category desire) -> {
-            assert keyword.length() > 0;
+            if (keyword.length() == 0) return null;
+
             char[] rem = keyword.toCharArray();
-            acc.append(rem[0]);
+            if (acc.length() == 0) acc.append(rem[0]); // check if another branch has processed
+            
             int i;
             for (i = 1; i < rem.length; i++) {
                 if (!checkNext(rem[i]) || !scanner.hasNext()) break;
@@ -361,24 +365,24 @@ public class Tokeniser extends CompilerPass {
             
             if (i == rem.length && isNotIdentifier.get()) return new Token(desire, acc.toString(), line, column);
             else return null;
-        };     
+        };
 
         Token temp; // initialized to null;
         switch(c) {
             case 'i': // int, if
                 // int
-                if (checkNext('n') && (temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
+                if ((temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
                 // if
-                if (checkNext('f') && (temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
+                if ((temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
                 break;
             case 'v': // void
                 if ((temp = matchKeyword.apply("void", Token.Category.VOID)) != null) return temp;
                 break;
             case 'c': // char, continue
                 // char
-                if (checkNext('h') && (temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
+                if ((temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
                 // continue
-                if (checkNext('o') && (temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
+                if ((temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
                 break;
             case 'e': // else
                 if ((temp = matchKeyword.apply("else", Token.Category.ELSE)) != null) return temp;
@@ -391,9 +395,9 @@ public class Tokeniser extends CompilerPass {
                 break;
             case 's': // struct, sizeof
                 // struct
-                if (checkNext('t') && (temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
+                if ((temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
                 // sizeof
-                if (checkNext('i') && (temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
+                if ((temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
                 break;
             case 'b': // break
                 if ((temp = matchKeyword.apply("break", Token.Category.BREAK)) != null) return temp;
@@ -401,12 +405,13 @@ public class Tokeniser extends CompilerPass {
             default:
                 return null;
         }
+        // break from the switch, pass to identifier
         return identifier(c, line, column, acc);
     }
 
     private Token identifier(char c, int line, int column, StringBuilder acc) {
         if (!matchIdentifier(c, false)) return null;
-        if (acc.length() == 0) acc.append(c);
+        if (acc.length() == 0) acc.append(c); // not being processed by keyword()
         /* possible situations:
          * 1. continue from where keywords() left
          * 2. scanner is still at c
