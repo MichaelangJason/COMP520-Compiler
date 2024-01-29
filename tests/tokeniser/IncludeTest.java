@@ -1,5 +1,5 @@
 package tests.tokeniser;
 
-public class includeTest {
+public class IncludeTest {
     
 }

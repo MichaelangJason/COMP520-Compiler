@@ -1,5 +1,5 @@
 package tests.tokeniser;
 
-public class intLiteralTest {
+public class IntLiteralTest {
     
 }
