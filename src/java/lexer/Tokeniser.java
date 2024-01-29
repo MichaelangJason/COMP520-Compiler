@@ -1,5 +1,7 @@
 package lexer;
 
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import util.CompilerPass;
 
 /**
@@ -201,11 +203,11 @@ public class Tokeniser extends CompilerPass {
     }
 
     private boolean isLowerCaseAlpha(char c) {
-        return lowerCaseAlpha.indexOf(c) == -1;
+        return lowerCaseAlpha.indexOf(c) != -1;
     }
 
     private boolean isUpperCaseAlpha(char c) {
-        return upperCaseAlpha.indexOf(c) == -1;
+        return upperCaseAlpha.indexOf(c) != -1;
     }
 
     private Token hashtagInclude(char c, int line, int column) {
@@ -308,11 +310,155 @@ public class Tokeniser extends CompilerPass {
         return new Token(Token.Category.INT_LITERAL, line, column);
     }
 
+    private boolean matchIdentifier(char c, boolean notFirst) {
+        return isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || (notFirst && isDigit(c)) || c == '_';
+    }
+
+    private boolean checkNext(Supplier<Boolean> fn) {
+        return scanner.hasNext() && fn.get();
+    }
+
+    private boolean checkNext(char c) {
+        return scanner.hasNext() && scanner.peek() == c;
+    }
+
     private Token keywords(char c, int line, int column) {
-        return null;
+        // boolean hasNext = scanner.hasNext();
+        if (!scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
+        // check keyword starters
+        // char next = scanner.peek();
+        // if (!isLowerCaseAlpha(scanner.peek())) return null;
+        // scanner.next(); // consume the starting lowercase alpha
+        Supplier<Boolean> isIllegalIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
+        BiFunction<String, Token.Category, Token> matchKeyword = (String keyword, Token.Category desire) -> {
+            assert keyword.length() > 0;
+            char[] rem = keyword.toCharArray();
+            int i;
+            for (i = 1; i < rem.length; i++) {
+                if (!checkNext(rem[i]) || !scanner.hasNext()) break;
+                scanner.next(); // consume it
+            }
+            
+            if (i == rem.length && isIllegalIdentifier.get()) return new Token(desire, line, column);
+            else return null;
+        };     
+
+        Token temp = null;
+        switch(c) {
+            case 'i': // int, if
+                // int
+                if ((temp = matchKeyword.apply("int", Token.Category.INT)) != null) return temp;
+                if ((temp = matchKeyword.apply("if", Token.Category.IF)) != null) return temp;
+                // if (next == 'n' && checkNext('t')) {
+                //     if ((temp = matchKeyword.apply(new char[] {'t'}, Token.Category.INT)) != null) return temp;
+
+                //     // scanner.next(); // consume t
+                //     // if (isIllegalIdentifier.get())
+                //     //     return new Token(Token.Category.INT, line, column);
+                // }
+                // // if
+                // if (next == 'f' && isIllegalIdentifier.get()) {
+                //     return new Token(Token.Category.IF, line, column);
+                // }
+                return null;
+            case 'v': // void
+                if ((temp = matchKeyword.apply("void", Token.Category.VOID)) != null) return temp;
+                // if (next == 'o' && checkNext('i')) {
+                //     scanner.next(); // consume i
+                //     if (checkNext('d')) {
+                //         scanner.next(); // consume d
+                //         if (isIllegalIdentifier.get())
+                //             return new Token(Token.Category.INT, line, column);
+                //     }
+                // }
+                return null;
+            case 'c': // char, continue
+                // char
+                if ((temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
+                // if (next == 'h' && checkNext('a')) {
+                //     scanner.next(); // consume a
+                //     if (checkNext('r')) {
+                //         scanner.next(); // consume r
+                //         if (isIllegalIdentifier.get())
+                //             return new Token(Token.Category.CHAR, line, column);
+                //     }
+                // }
+
+                // continue
+                if ((temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
+                // if (next == 'o' && checkNext('n')) {
+                //     scanner.next(); // consume n
+                //     char[] rem = {'n', 't', 'i', 'n', 'u', 'e'};
+                //     int i;
+                //     for (i = 0; i < rem.length; i++) {
+                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
+                //         scanner.next(); // consume it
+                //     }
+                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
+                //         return new Token(Token.Category.CONTINUE, line, column);
+                // }
+                return null;
+            case 'e': // else
+                if ((temp = matchKeyword.apply("else", Token.Category.ELSE)) != null) return temp;
+
+                // if (next == 'l' && checkNext('s')) {
+                //     scanner.next(); // consume s
+                //     if (checkNext('e')) {
+                //         scanner.next(); // consume e
+                //         if (isIllegalIdentifier.get())
+                //             return new Token(Token.Category.ELSE, line, column);
+                //     }
+                // }
+                return null;
+            case 'w': // while
+                if ((temp = matchKeyword.apply("while", Token.Category.WHILE)) != null) return temp;
+
+                // if (next == 'h' && checkNext('i')) {
+                //     scanner.next(); // consume i
+                //     char[] rem = {'l', 'e'};
+                //     int i;
+                //     for (i = 0; i < rem.length; i++) {
+                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
+                //         scanner.next(); // consume it
+                //     }
+                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
+                //         return new Token(Token.Category.WHILE, line, column);
+                // } 
+                return null;
+            case 'r': // return
+                if ((temp = matchKeyword.apply("return", Token.Category.RETURN)) != null) return temp;
+
+                // if (next == 'e' && checkNext('t')) {
+                //     scanner.next(); // consume i
+                //     char[] rem = {'u', 'r', 'n'};
+                //     int i;
+                //     for (i = 0; i < rem.length; i++) {
+                //         if (!checkNext(rem[i]) || !scanner.hasNext()) break;
+                //         scanner.next(); // consume it
+                //     }
+                //     if (i == rem.length - 1 && isIllegalIdentifier.get())
+                //         return new Token(Token.Category.WHILE, line, column);
+                // } 
+                return null;
+            case 's': // struct, sizeof
+                if ((temp = matchKeyword.apply("struct", Token.Category.STRUCT)) != null) return temp;
+                if ((temp = matchKeyword.apply("sizeof", Token.Category.SIZEOF)) != null) return temp;
+                return null;
+            case 'b': // break
+                if ((temp = matchKeyword.apply("break", Token.Category.BREAK)) != null) return temp;
+                return null;
+            default:
+                return null;
+        }
     }
 
     private Token identifier(char c, int line, int column) {
+        if (!matchIdentifier(c, false)) return null;
+        /*
+         * 1. continue from where keywords() left
+         * 2. scanner is still at c
+         * 
+         */
         return null;
     }
 }
