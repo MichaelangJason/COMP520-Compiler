@@ -32,21 +32,21 @@ stmt       ::= block
 
 block      ::= "{" (vardecl)* (stmt)* "}"
 
-exp        ::= "(" exp ")"
-             | exp "=" exp                           # assignment
-             | (IDENT | INT_LITERAL)
-             | ("-" | "+") exp
-             | CHAR_LITERAL
-             | STRING_LITERAL
-             | exp (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp  # binary operators
+exp        ::= "(" exp ")" #beta1
+             | exp "=" exp              #alpha1             # assignment
+             | (IDENT | INT_LITERAL) #beta2
+             | ("-" | "+") exp #beta3
+             | CHAR_LITERAL #beta4
+             | STRING_LITERAL #beta5
+             | exp (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp  #alpha2 # binary operators
              | arrayaccess | fieldaccess | valueat | addressof | funcall | sizeof | typecast
 
-funcall      ::= IDENT "(" [ exp ("," exp)* ] ")" # function call
-arrayaccess  ::= exp "[" exp "]"                  # array access
-fieldaccess  ::= exp "." IDENT                    # structure field member access
-valueat      ::= "*" exp                          # Value at operator (pointer indirection)
-addressof    ::= "&" exp                          # Address-of operator
-sizeof       ::= "sizeof" "(" type ")"            # size of type
-typecast     ::= "(" type ")" exp                 # type casting
+funcall      ::= IDENT "(" [ exp ("," exp)* ] ")" # function call #beta6
+arrayaccess  ::= exp "[" exp "]"                  # array access #alpha3
+fieldaccess  ::= exp "." IDENT                    # structure field member access #alpha4
+valueat      ::= "*" exp                          # Value at operator (pointer indirection) #beta7
+addressof    ::= "&" exp                          # Address-of operator #beta8
+sizeof       ::= "sizeof" "(" type ")"            # size of type #beta9
+typecast     ::= "(" type ")" exp                 # type casting #beta10
 
 
