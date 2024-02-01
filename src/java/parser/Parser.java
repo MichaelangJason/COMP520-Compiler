@@ -117,6 +117,9 @@ public class Parser  extends CompilerPass {
     }
 
 
+    /**
+     * program ::= (include)* (structdecl | vardecl | fundecl | funproto)* EOF
+     */
     private void parseProgram() {
         parseIncludes();
 
@@ -151,7 +154,9 @@ public class Parser  extends CompilerPass {
 
         expect(Category.EOF);
     }
-
+    /**
+     * include    ::= "#include" STRING_LITERAL
+     */
     // includes are ignored, so does not need to return an AST node
     private void parseIncludes() {
         if (accept(Category.INCLUDE)) {
@@ -185,7 +190,7 @@ public class Parser  extends CompilerPass {
     }
 
     /**
-     * vardecl ::= type IDENT ("[" INT_LITERAL "]")* ";"
+     * vardecl  ::= type IDENT vardecl'
      * vardecl' ::= ("[" INT_LITERAL "]")* ";"
      */
     private void parseVardeclPrime() {
@@ -215,13 +220,16 @@ public class Parser  extends CompilerPass {
         }
     }
 
+    /**
+     * structtype ::= "struct" IDENT
+     */
     private void parseStructtype() {
         expect(Category.STRUCT);
         expect(Category.IDENTIFIER);
     }
 
     /*
-     * params     ::= [ type IDENT ("[" INT_LITERAL "]")* ("," type IDENT ("[" INT_LITERAL "]")*)* ]
+     * params ::= [ type IDENT ("[" INT_LITERAL "]")* ("," type IDENT ("[" INT_LITERAL "]")*)* ]
      */
     private void parseParams() {
         if (!accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) return;
@@ -286,6 +294,15 @@ public class Parser  extends CompilerPass {
         expect(Category.RBRA);
     }
 
+    /*
+     * stmt   ::= block
+                | "while" "(" exp ")" stmt              # while loop
+                | "if" "(" exp ")" stmt ["else" stmt]   # if then else
+                | "return" [exp] ";"                    # return
+                | exp ";"                               # expression statement, e.g. a function call
+                | "continue" ";"                        # continue
+                | "break" ";"                           # break
+     */
     private void parseStmt() {
         if (accept(Category.WHILE)) {
             expect(Category.WHILE);
@@ -325,6 +342,16 @@ public class Parser  extends CompilerPass {
     /*
      * A valid exp can start with:
      * "(" IDENT INT_LITERAL "-" "+" CHAR_LITERAL STRING_LITERAL "*" "&" "sizeof"
+     * exp ::= INT_LITERAL exp' 
+     *       | CHAR_LITERAL exp' 
+     *       | STRING_LITERAL exp'
+     *       | ("-" | "+") exp exp'
+     *       | "(" ExpLpar exp'
+     *       | "*" exp exp' # valueat
+     *       | "&" exp exp' # addressof
+     *       | sizeof exp' # sizeof
+     *       | ExpIdent exp'
+     *      
      */
     private void parseExp() {
         // betas
@@ -355,6 +382,12 @@ public class Parser  extends CompilerPass {
         // parseExpPrime is not at the end allows a easier debugging
     }
 
+    /**
+     * exp' ::= "=" exp exp'
+     *        | "[" arrayaccess' exp'
+     *        | "." fieldaccess' exp'
+     *        | (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp
+     */
     private void parseExpPrime() {
         if (accept(Category.ASSIGN)) {
             // assignment
@@ -389,25 +422,9 @@ public class Parser  extends CompilerPass {
         }
     }
 
-    private void parseExpIdent() {
-        expect(Category.IDENTIFIER);
-
-        if (accept(Category.LPAR)) {
-            // funcall
-            parseFuncall();
-        }
-    }
-
-    private void parseFuncall() {
-        expect(Category.LPAR);
-        parseExp();
-        while (accept(Category.COMMA)) {
-            expect(Category.COMMA);
-            parseExp();
-        }
-        expect(Category.RPAR);
-    }
-
+    /**
+     * ExpLpar ::= "(" exp ")" | typecast
+     */
     private void parseExpLpar() {
         Category[] types = new Category[]{Category.INT, Category.CHAR, Category.VOID, Category.STRUCT};
         if (Stream.of(types).anyMatch(s -> s == lookAhead(1).category)) {
@@ -418,7 +435,36 @@ public class Parser  extends CompilerPass {
             expect(Category.RPAR);
         }
     }
-    /*
+
+    /**
+     * ExpIdent ::= IDENT | IDENT funcall'
+     */
+    private void parseExpIdent() {
+        expect(Category.IDENTIFIER);
+
+        if (accept(Category.LPAR)) {
+            // funcall
+            parseFuncallPrime();
+        }
+    }
+
+    /**
+     * funcall  ::= IDENT funcall' 
+     * funcall' ::= "(" [ exp ("," exp)* ] ")" 
+     * # function call #beta6
+     */
+    private void parseFuncallPrime() {
+        expect(Category.LPAR);
+        parseExp();
+        while (accept(Category.COMMA)) {
+            expect(Category.COMMA);
+            parseExp();
+        }
+        expect(Category.RPAR);
+    }
+
+    
+    /**
      * fun' ::= "(" params ")"
      */
     private void parseFunPrime() {
@@ -427,6 +473,10 @@ public class Parser  extends CompilerPass {
         expect(Category.RPAR);
     }
 
+    /**
+     * sizeof ::= "sizeof" "(" type ")"  
+     * # size of type #beta9
+     */
     void parseSizeof() {
         if (accept(Category.SIZEOF)) {
             expect(Category.SIZEOF);
@@ -436,16 +486,28 @@ public class Parser  extends CompilerPass {
         }
     }
 
+    /**
+     * valueat ::= "*" exp  
+     * # Value at operator (pointer indirection) #beta7
+     */
     private void parseValueat() {
         expect(Category.ASTERIX);
         parseExp();
     }
     
+    /**
+     * addressof ::= "&" exp
+     * # Address-of operator #beta8
+     */
     private void parseAddressof() {
         expect(Category.AND);
         parseExp();
     }
 
+    /**
+     * typecast ::= "(" type ")" exp
+     * # type casting #beta10
+     */
     private void parseTypecast() {
         expect(Category.LPAR);
         parseType();
@@ -453,15 +515,24 @@ public class Parser  extends CompilerPass {
         parseExp();
     }
 
+    /**
+     * arrayaccess  ::= exp arrayaccess'
+     * arrayaccess' ::= "[" exp "]"
+     * # array access #alpha3
+     */
     private void parseArrayAccessPrime() {
         expect(Category.LSBR);
         parseExp();
         expect(Category.RSBR);
     }
-
+    
+    /**
+     * fieldaccess  ::= exp fieldaccess'
+     * fieldaccess' ::= "." IDENT
+     * # structure field member access #alpha4
+     */
     private void parseFieldAccessPrime() {
         expect(Category.DOT);
         expect(Category.IDENTIFIER);
     }
-
 }
