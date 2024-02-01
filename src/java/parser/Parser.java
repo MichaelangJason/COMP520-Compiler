@@ -118,10 +118,12 @@ public class Parser  extends CompilerPass {
 
 
     /**
-     * program ::= (include)* (structdecl | vardecl | fundecl | funproto)* EOF
+     * program   ::= (include)* (structdecl | vardecl | fundecl | funproto)* EOF
+     * fundecl   ::= fun' block       # function declaration
+     * funproto  ::= fun' ";"         # function prototype
      */
     private void parseProgram() {
-        parseIncludes();
+        while (accept(Category.INCLUDE)) parseIncludes();
 
         while (accept(Category.STRUCT, Category.INT, Category.CHAR, Category.VOID)) {
             if (token.category == Category.STRUCT &&
@@ -154,16 +156,14 @@ public class Parser  extends CompilerPass {
 
         expect(Category.EOF);
     }
+
     /**
      * include    ::= "#include" STRING_LITERAL
      */
     // includes are ignored, so does not need to return an AST node
     private void parseIncludes() {
-        if (accept(Category.INCLUDE)) {
-            nextToken();
-            expect(Category.STRING_LITERAL);
-            parseIncludes();
-        }
+        expect(Category.INCLUDE);
+        expect(Category.STRING_LITERAL);
     }
 
     /**
@@ -180,9 +180,7 @@ public class Parser  extends CompilerPass {
         parseVardeclPrime();
 
         while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
-            parseType();
-            expect(Category.IDENTIFIER);
-            parseVardeclPrime();
+            parseVardecl();
         }
 
         expect(Category.RBRA);
@@ -191,6 +189,14 @@ public class Parser  extends CompilerPass {
 
     /**
      * vardecl  ::= type IDENT vardecl'
+     */
+    private void parseVardecl() {
+        parseType();
+        expect(Category.IDENTIFIER);
+        parseVardeclPrime();
+    }
+
+    /**
      * vardecl' ::= ("[" INT_LITERAL "]")* ";"
      */
     private void parseVardeclPrime() {
@@ -206,8 +212,16 @@ public class Parser  extends CompilerPass {
     }
 
     /**
+     * fun' ::= "(" params ")"
+     */
+    private void parseFunPrime() {
+        expect(Category.LPAR);
+        parseParams();
+        expect(Category.RPAR);
+    }
+
+    /**
      * type       ::= ("int" | "char" | "void" | structtype) ("*")*
-     * structtype ::= "struct" IDENT
      */
     private void parseType() {
         if (accept(Category.INT, Category.CHAR, Category.VOID)) {
@@ -230,6 +244,7 @@ public class Parser  extends CompilerPass {
 
     /*
      * params ::= [ type IDENT ("[" INT_LITERAL "]")* ("," type IDENT ("[" INT_LITERAL "]")*)* ]
+     * can parse epsilon
      */
     private void parseParams() {
         if (!accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) return;
@@ -260,7 +275,6 @@ public class Parser  extends CompilerPass {
      */
     private void parseBlock() {
         expect(Category.LBRA);
-        
         
         // (vardecl) *
         while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
@@ -378,8 +392,6 @@ public class Parser  extends CompilerPass {
             expect(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL);
             parseExpPrime();
         }
-        
-        // parseExpPrime is not at the end allows a easier debugging
     }
 
     /**
@@ -387,8 +399,10 @@ public class Parser  extends CompilerPass {
      *        | "[" arrayaccess' exp'
      *        | "." fieldaccess' exp'
      *        | (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp
+     *        | epsilon
      */
     private void parseExpPrime() {
+        // alphas
         if (accept(Category.ASSIGN)) {
             // assignment
             expect(Category.ASSIGN);
@@ -449,12 +463,12 @@ public class Parser  extends CompilerPass {
     }
 
     /**
-     * funcall  ::= IDENT funcall' 
+     * funcall  ::= IDENT funcall' # function call #beta6
      * funcall' ::= "(" [ exp ("," exp)* ] ")" 
-     * # function call #beta6
      */
     private void parseFuncallPrime() {
         expect(Category.LPAR);
+
         if (accept(
             Category.LPAR,
             Category.IDENTIFIER,
@@ -474,17 +488,7 @@ public class Parser  extends CompilerPass {
                 parseExp();
             }
         }
-
-        expect(Category.RPAR);
-    }
-
-    
-    /**
-     * fun' ::= "(" params ")"
-     */
-    private void parseFunPrime() {
-        expect(Category.LPAR);
-        parseParams();
+        
         expect(Category.RPAR);
     }
 
