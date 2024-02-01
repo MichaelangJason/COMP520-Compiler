@@ -1,7 +1,7 @@
 package lexer;
 
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 import util.CompilerPass;
 
 /**
@@ -338,8 +338,8 @@ public class Tokeniser extends CompilerPass {
         return isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || (notFirst && isDigit(c)) || c == '_';
     }
 
-    private boolean checkNext(Supplier<Boolean> fn) {
-        return scanner.hasNext() && fn.get();
+    private boolean checkNext(BooleanSupplier fn) {
+        return scanner.hasNext() && fn.getAsBoolean();
     }
 
     private boolean checkNext(char c) {
@@ -350,7 +350,7 @@ public class Tokeniser extends CompilerPass {
         // check start symbol, only starting with lowercase alphabet and following sequence > 1
         if (!isLowerCaseAlpha(c) || !scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
         StringBuilder acc = new StringBuilder();
-        Supplier<Boolean> isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
+        BooleanSupplier isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
         BiFunction<String, Token.Category, Token> matchKeyword = (String keyword, Token.Category desire) -> {
             if (keyword.length() == 0) return null;
 
@@ -363,7 +363,7 @@ public class Tokeniser extends CompilerPass {
                 acc.append(scanner.next()); // consume it
             }
             
-            if (i == rem.length && isNotIdentifier.get()) return new Token(desire, acc.toString(), line, column);
+            if (i == rem.length && isNotIdentifier.getAsBoolean()) return new Token(desire, acc.toString(), line, column);
             else return null;
         };
 
