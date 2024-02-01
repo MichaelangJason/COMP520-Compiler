@@ -148,7 +148,6 @@ public class Parser  extends CompilerPass {
                 }
             }
         }
-        // to be completed ...
 
         expect(Category.EOF);
     }
@@ -255,15 +254,14 @@ public class Parser  extends CompilerPass {
         expect(Category.LBRA);
         
         
-        // vardecl *
+        // (vardecl) *
         while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
             parseType();
             expect(Category.IDENTIFIER);
             parseVardeclPrime();
         }
 
-        // stmt *
-        // parseStmt();
+        // (stmt) *
         while (accept(
             Category.LBRA, 
             Category.WHILE, 
@@ -329,25 +327,32 @@ public class Parser  extends CompilerPass {
      * "(" IDENT INT_LITERAL "-" "+" CHAR_LITERAL STRING_LITERAL "*" "&" "sizeof"
      */
     private void parseExp() {
+        // betas
         if (accept(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL)) {
             nextToken(); // consume it
+            parseExpPrime();
         } else if (accept(Category.MINUS, Category.PLUS)) {
             expect(Category.MINUS, Category.PLUS);
             parseExp();
+            parseExpPrime();
         } else if (accept(Category.LPAR)) {
             parseExpLpar();
+            parseExpPrime();
         } else if (accept(Category.ASTERIX)) {
             parseValueat();
+            parseExpPrime();
         } else if (accept(Category.AND)) {
             parseAddressof();
+            parseExpPrime();
         } else if (accept(Category.SIZEOF)) {
             parseSizeof();
+            parseExpPrime();
         } else if (accept(Category.IDENTIFIER)) {
             parseExpIdent();
+            parseExpPrime();
         }
-
-        // Exp'
-        parseExpPrime();
+        
+        // parseExpPrime is not at the end allows a easier debugging
     }
 
     private void parseExpPrime() {
@@ -395,24 +400,10 @@ public class Parser  extends CompilerPass {
 
     private void parseFuncall() {
         expect(Category.LPAR);
-        if (accept(
-            Category.LPAR,
-            Category.IDENTIFIER,
-            Category.INT_LITERAL,
-            Category.MINUS,
-            Category.PLUS,
-            Category.CHAR_LITERAL,
-            Category.STRING_LITERAL,
-            Category.ASTERIX,
-            Category.AND,
-            Category.SIZEOF
-        ))
-        {
+        parseExp();
+        while (accept(Category.COMMA)) {
+            expect(Category.COMMA);
             parseExp();
-            while (accept(Category.COMMA)) {
-                expect(Category.COMMA);
-                parseExp();
-            }
         }
         expect(Category.RPAR);
     }
