@@ -355,8 +355,8 @@ public class Parser  extends CompilerPass {
      */
     private void parseExp() {
         // betas
-        if (accept(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL)) {
-            nextToken(); // consume it
+        if (accept(Category.IDENTIFIER)) {
+            parseExpIdent();
             parseExpPrime();
         } else if (accept(Category.MINUS, Category.PLUS)) {
             expect(Category.MINUS, Category.PLUS);
@@ -374,8 +374,8 @@ public class Parser  extends CompilerPass {
         } else if (accept(Category.SIZEOF)) {
             parseSizeof();
             parseExpPrime();
-        } else if (accept(Category.IDENTIFIER)) {
-            parseExpIdent();
+        } else {
+            expect(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL);
             parseExpPrime();
         }
         
@@ -455,11 +455,26 @@ public class Parser  extends CompilerPass {
      */
     private void parseFuncallPrime() {
         expect(Category.LPAR);
-        parseExp();
-        while (accept(Category.COMMA)) {
-            expect(Category.COMMA);
+        if (accept(
+            Category.LPAR,
+            Category.IDENTIFIER,
+            Category.INT_LITERAL,
+            Category.MINUS,
+            Category.PLUS,
+            Category.CHAR_LITERAL,
+            Category.STRING_LITERAL,
+            Category.ASTERIX,
+            Category.AND,
+            Category.SIZEOF
+        ))
+        {
             parseExp();
+            while (accept(Category.COMMA)) {
+                expect(Category.COMMA);
+                parseExp();
+            }
         }
+
         expect(Category.RPAR);
     }
 
