@@ -113,13 +113,19 @@ public class Main1 {
         else if (mode == Mode.PARSER) {
             Parser parser = new Parser(tokeniser);
             parser.parse();
+
+            if (tokeniser.hasErrors()) {
+                System.out.println("Lexing: failed (" + tokeniser.getNumErrors() + " errors)");
+                System.exit(LEXER_FAIL);
+                return;
+            }
             if (parser.hasErrors()) {
                 System.out.println("Parsing: failed (" + parser.getNumErrors() + " errors)");
                 System.exit(PARSER_FAIL);
                 return;
             }
-            System.out.println("Parsing: pass");
 
+            System.out.println("Parsing: pass");
             System.exit(PASS);
 
         }
