@@ -212,7 +212,7 @@ public class Parser  extends CompilerPass {
     private void parseType() {
         if (accept(Category.INT, Category.CHAR, Category.VOID)) {
             expect(Category.INT, Category.CHAR, Category.VOID);
-        } else if (accept(Category.STRUCT)) {
+        } else {
             parseStructtype();
         }
         while (accept(Category.ASTERIX)) {
