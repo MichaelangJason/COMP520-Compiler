@@ -2,6 +2,9 @@ package tests.tokeniser;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+
 import org.junit.Test;
 
 import lexer.Scanner;
@@ -108,5 +111,36 @@ public class KeywordsTest {
         Token t = s.nextToken();
         assertEquals(Token.Category.BREAK, t.category);
         assertEquals(expected, t.data);
+    }
+
+    @Test
+    public void testAllKeywords() {
+        String[] keywords = {
+            "int", "void", "char",
+            "if", "else", "while", "return",
+            "struct", "sizeof", "continue",
+            "break", "#include", "#include", "#include"
+        };
+
+        Token.Category[] categories = {
+            Token.Category.INT, Token.Category.VOID, Token.Category.CHAR,
+            Token.Category.IF, Token.Category.ELSE, Token.Category.WHILE, Token.Category.RETURN,
+            Token.Category.STRUCT, Token.Category.SIZEOF, Token.Category.CONTINUE,
+            Token.Category.BREAK, Token.Category.INCLUDE, Token.Category.INCLUDE, Token.Category.INCLUDE
+        };
+
+        try {
+            s = new Tokeniser(new Scanner(new File("keywords.c")));
+            for (int i = 0; i < keywords.length; i++) {
+                Token t = s.nextToken();
+                assertEquals(categories[i], t.category);
+                assertEquals(keywords[i], t.data);
+            }
+            Token t = s.nextToken();
+            assertEquals(Token.Category.EOF, t.category);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 }

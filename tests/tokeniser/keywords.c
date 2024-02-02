@@ -8,9 +8,5 @@ return
 struct
 sizeof
 continue
-'\''
-"\""
-"'"
-'"'
 break
 #include #include #include
