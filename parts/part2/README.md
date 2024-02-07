@@ -196,7 +196,7 @@ This will allow you to implement very simple analysis passes with only a few lin
 For instance, if you wanted to implement a function that prints the name of all variables every time they appear in the abstract syntax tree, you could simply do:
 
 ```java
-public void printAllFunCalls(ASTNode node) {
+public void printAllVariableUses(ASTNode node) {
     switch (node) {
         case null -> {
             throw new IllegalStateException("Unexpected null value");
@@ -208,7 +208,7 @@ public void printAllFunCalls(ASTNode node) {
 
         case ASTNode n -> {
             for (ASTNode child: n.children()) {
-                printAllFunCalls(child);
+                printAllVariableUses(child);
             }
         }
     }
