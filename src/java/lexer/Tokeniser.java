@@ -18,6 +18,9 @@ public class Tokeniser extends CompilerPass {
         this.scanner = scanner;
     }
 
+    /**
+     * Overloaded error to allow printing message with String and char
+     */
     private void error(char c, int line, int col) {
         String msg = "---Lexing error: unrecognised character ("+c+") at "+line+":"+col+"---";
         System.out.println(msg);
@@ -75,6 +78,9 @@ public class Tokeniser extends CompilerPass {
         return invalidWithMsg(c, line, column);
     }
 
+    /**
+     * Encapsulate INVALID Token with String information possible
+     */
     private Token invalidWithMsg(char c, int line, int column) {
         error(c, line, column);
         return new Token(Token.Category.INVALID, String.valueOf(c), line, column);
@@ -86,39 +92,39 @@ public class Tokeniser extends CompilerPass {
 
     }
 
+    /**
+     * Tokenize char with no combinations
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token of single char
+     */
     private Token singleChar(char c, int line, int column) {
-        switch(c) {
-            case '+':
-                return new Token(Token.Category.PLUS, "+", line, column);
-            case '-':
-                return new Token(Token.Category.MINUS, "-", line, column);
-            case '*':
-                return new Token(Token.Category.ASTERIX, "*", line, column);
-            case '%':
-                return new Token(Token.Category.REM, "%", line, column);
-            case '{':
-                return new Token(Token.Category.LBRA, "{", line, column);
-            case '}':
-                return new Token(Token.Category.RBRA, "}", line, column);
-            case '(':
-                return new Token(Token.Category.LPAR, "(", line, column);
-            case ')':
-                return new Token(Token.Category.RPAR, ")", line, column);
-            case '[':
-                return new Token(Token.Category.LSBR, "[", line, column);
-            case ']':
-                return new Token(Token.Category.RSBR, "]", line, column);
-            case ';':
-                return new Token(Token.Category.SC, ";", line, column);
-            case ',':
-                return new Token(Token.Category.COMMA, ",", line, column);
-            case '.':
-                return new Token(Token.Category.DOT, ".", line, column);
-            default:
-                return null;
-        }
+        return switch(c) {
+            case '+'-> new Token(Token.Category.PLUS, "+", line, column);
+            case '-'-> new Token(Token.Category.MINUS, "-", line, column);
+            case '*'-> new Token(Token.Category.ASTERIX, "*", line, column);
+            case '%'-> new Token(Token.Category.REM, "%", line, column);
+            case '{'-> new Token(Token.Category.LBRA, "{", line, column);
+            case '}'-> new Token(Token.Category.RBRA, "}", line, column);
+            case '('-> new Token(Token.Category.LPAR, "(", line, column);
+            case ')'-> new Token(Token.Category.RPAR, ")", line, column);
+            case '['-> new Token(Token.Category.LSBR, "[", line, column);
+            case ']'-> new Token(Token.Category.RSBR, "]", line, column);
+            case ';'-> new Token(Token.Category.SC, ";", line, column);
+            case ','-> new Token(Token.Category.COMMA, ",", line, column);
+            case '.'-> new Token(Token.Category.DOT, ".", line, column);
+            default -> null;
+        };
     }
 
+    /**
+     * Tokenize char that may followed by another legal char
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token of single char (with extensibility) | Token of double char
+     */
     private Token twoCharBranch(char c, int line, int column) {
         boolean hasNext = scanner.hasNext();
         switch (c) {
@@ -181,13 +187,7 @@ public class Tokeniser extends CompilerPass {
         // check peek value, empty peek is covered within peek()
         if (!scanner.hasNext()) return -1;
         switch (scanner.peek()) {
-            case 'a':
-            case 'b':
-            case 'n':
-            case 'r':
-            case 't':
-            case '\\':
-            case '0':
+            case 'a', 'b', 'n', 'r', 't', '\\', '0':
                 return 0;
             case '\'': // single quote
                 return 1;
@@ -199,6 +199,9 @@ public class Tokeniser extends CompilerPass {
         }
     }
 
+    /**
+     * encapsulate these matching condition for better readability
+     */
     private boolean isWhiteSpace(char c) {
         return c == ' ';
     }
@@ -215,6 +218,13 @@ public class Tokeniser extends CompilerPass {
         return UPPERCASEALPHA.indexOf(c) != -1;
     }
 
+    /**
+     * Tokenize #include
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token.Category.INCLUDE | Token.Category.INVALID
+     */
     private Token hashtagInclude(char c, int line, int column) {
         if (c != '#') return null;
         StringBuilder acc = new StringBuilder(); acc.append(c);
@@ -230,51 +240,43 @@ public class Tokeniser extends CompilerPass {
         else return invalidWithMsg(acc.toString(), line, column);
     }
 
+    /**
+     * helper function of isLegalLiteralChar
+     * @param c
+     * @param hasSingleQuote
+     * @return
+     */
     private boolean isSpecialCharWithoutQuote(char c, boolean hasSingleQuote) {
         switch(c) {
-            case '\'':
-                return hasSingleQuote;
-            case '\"':
-                return !hasSingleQuote;
-            case '`':
-            case '~':
-            case '@':
-            case '!':
-            case '$':
-            case '#':
-            case '^':
-            case '*':
-            case '%':
-            case '&':
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-            case '<':
-            case '>':
-            case '+':
-            case '=':
-            case '_':
-            case '-':
-            case '|':
-            case '/':
-            case ';':
-            case ':':
-            case ',':
-            case '.':
-            case '?':
+            case '\'': return hasSingleQuote;
+            case '\"': return !hasSingleQuote;
+            case '`', '~', '@', '!', '$', '#', '^':
+            case '*', '%', '&', '(', ')', '[', ']':
+            case '{', '}', '<', '>', '+', '=', '_':
+            case '-', '|', '/', ';', ':', ',', '.', '?':
                 return true;
             default:
                 return false;
         }
     }
 
+    /**
+     * helper function of charLiteral and stringLiteral
+     * @param c
+     * @param hasSingleQuote
+     * @return the input char matches any case or not
+     */
     private boolean isLegalLiteralChar(char c, boolean hasSingleQuote) {
         return isWhiteSpace(c) || isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || isDigit(c) || isSpecialCharWithoutQuote(c, hasSingleQuote);
     }
     
+    /**
+     * Tokenize charLiteral
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token.Category.CHAR_LITERAL | Token.Category.INVALID
+     */
     private Token charLiteral(char c, int line, int column) {
         if (c == '\'' && scanner.hasNext()) {
             StringBuilder acc = new StringBuilder();
@@ -297,6 +299,13 @@ public class Tokeniser extends CompilerPass {
         return null;
     }
 
+    /**
+     * Tokenize stringLiteral
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token.Category.STRING_LITERAL | Token.Category.INVALID
+     */
     private Token stringLiteral(char c, int line, int column) {
         if (c == '\"') {
             StringBuilder acc = new StringBuilder();
@@ -321,6 +330,13 @@ public class Tokeniser extends CompilerPass {
         return null;
     }
 
+    /**
+     * Tokenize intLiteral
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token.Category.INT_LITERAL
+     */
     private Token intLiteral(char c, int line, int column) {
         if (!isDigit(c)) return null; // if not digit
         StringBuilder acc = new StringBuilder();
@@ -338,6 +354,11 @@ public class Tokeniser extends CompilerPass {
         return isLowerCaseAlpha(c) || isUpperCaseAlpha(c) || (notFirst && isDigit(c)) || c == '_';
     }
 
+    /**
+     * check next char with a supplier boolean or simply a char
+     * @param fn | c
+     * @return
+     */
     private boolean checkNext(BooleanSupplier fn) {
         return scanner.hasNext() && fn.getAsBoolean();
     }
@@ -346,8 +367,15 @@ public class Tokeniser extends CompilerPass {
         return scanner.hasNext() && scanner.peek() == c;
     }
 
+    /**
+     * Tokenize keywords
+     * @param c
+     * @param line
+     * @param column
+     * @return null | Token category of keywords | Token.Category.IDENTIFIER
+     */
     private Token keywords(char c, int line, int column) {
-        // check start symbol, only starting with lowercase alphabet and following sequence > 1
+        // check initial symbol, only starting with lowercase alphabet and following sequence > 1
         if (!isLowerCaseAlpha(c) || !scanner.hasNext() || !isLowerCaseAlpha(scanner.peek())) return null;
         StringBuilder acc = new StringBuilder();
         BooleanSupplier isNotIdentifier = () -> !checkNext(() -> matchIdentifier(scanner.peek(), true));
@@ -409,6 +437,14 @@ public class Tokeniser extends CompilerPass {
         return identifier(c, line, column, acc);
     }
 
+    /**
+     * Overloaded identifier to handle the unended tokenizing from keywords
+     * @param c
+     * @param line
+     * @param column
+     * @param acc
+     * @return null | Token.Category.IDENTIFIER
+     */
     private Token identifier(char c, int line, int column, StringBuilder acc) {
         if (!matchIdentifier(c, false)) return null;
         if (acc.length() == 0) acc.append(c); // not being processed by keyword()
