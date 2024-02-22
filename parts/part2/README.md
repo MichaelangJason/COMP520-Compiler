@@ -128,23 +128,23 @@ As see in the lecture, left-associative binary operators should be handled using
 We suggest that you express these in the grammar using a Kleene closure, which will directly translate to a loop in your parser code.
 
 
-| Precedence |Operator       | Description       |Associativity  |
-|:-----------| :------------ | :-----------      | :-----------  |
-| 1          | ()            | Function call     | Left-to-right |
-| 1          | \[\]          | Array subscripting | Left-to-right |
-| 1          | .             | Structure member access | Left-to-right |
-| 2          | +             | Unary plus | Right-to-left |
-| 2          | -             | Unary minus | Right-to-left |
-| 2          | (type)        | Type cast | Right-to-left |
-| 2          | *             | Indirection | Right-to-left |
-| 2          | &             | Address of | Right-to-left |
-| 3          | * / %         | Multiplication, division, remainder | Left-to-right |
-| 4          | + -           | Addition, subtraction | Left-to-right |
-| 5          | < <= > >=     | Relational operators | Left-to-right |
-| 6          | == \!=        | Relational operators | Left-to-right |
-| 7          | &&            | Logical AND | Left-to-right |
-| 8          | ⎮⎮            | Logical OR | Left-to-right |
-| 9          | =             | Assignment        | Right-to-left |
+| Precedence | Operator      | Description                          | Associativity |
+|:-----------| :------------ | :----------------------------------- | :-----------  |
+| 1          | ()            | Function call                        | Left-to-right |
+| 1          | \[\]          | Array subscripting                   | Left-to-right |
+| 1          | .             | Structure member access              | Left-to-right |
+| 2          | +             | Unary plus                           | Right-to-left |
+| 2          | -             | Unary minus                          | Right-to-left |
+| 2          | (type)        | Type cast                            | Right-to-left |
+| 2          | *             | Indirection                          | Right-to-left |
+| 2          | &             | Address of                           | Right-to-left |
+| 3          | * / %         | Multiplication, division, remainder  | Left-to-right |
+| 4          | + -           | Addition, subtraction                | Left-to-right |
+| 5          | < <= > >=     | Relational operators                 | Left-to-right |
+| 6          | == \!=        | Relational operators                 | Left-to-right |
+| 7          | &&            | Logical AND                          | Left-to-right |
+| 8          | ⎮⎮            | Logical OR                           | Left-to-right |
+| 9          | =             | Assignment                           | Right-to-left |
 
 Here is how to "interpret" the following piece of C code based on precedence and associativity:
  
