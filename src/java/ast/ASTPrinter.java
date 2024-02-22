@@ -16,12 +16,6 @@ public class ASTPrinter {
                 throw new IllegalStateException("Unexpected null value");
             }
 
-            case Block ignored -> {
-                writer.print("Block(");
-                // to complete
-                writer.print(")");
-            }
-
             case Program p -> {
                 writer.print("Program(");
                 String delimiter = "";
@@ -34,8 +28,6 @@ public class ASTPrinter {
                 writer.flush();
             }  
             
-            
-
             // Types
             case BaseType bt -> {
                 // to complete ...
@@ -202,8 +194,56 @@ public class ASTPrinter {
                 writer.print(op.name());
             }
 
-            default -> {
+            // statements
+            case Block blk -> {
+                writer.print("Block(");
+                for (VarDecl vd: blk.vds) {
+                    visit(vd);
+                    if (blk.vds.indexOf(vd) < blk.vds.size() - 1) writer.print(",");
+                }
+                for (Stmt stmt: blk.stmts) {
+                    writer.print(",");
+                    visit(stmt);
+                };
+                writer.print(")");
+            }
 
+            case While whl -> {
+                writer.print("While(");
+                visit(whl.expr);
+                writer.print(",");
+                visit(whl.stmt);
+                writer.print(")");
+            }
+
+            case If ifs -> {
+                writer.print("While(");
+                visit(ifs.expr);
+                writer.print(",");
+                visit(ifs.ifBranch);
+                if (ifs.elseBranch != null) {
+                    writer.print(",");
+                    visit(ifs.elseBranch);
+                }
+                writer.print(")");
+            }
+
+            case Return rtrn -> {
+                writer.print("Return(");
+                if (rtrn.expr != null) visit(rtrn.expr);
+                writer.print(")");   
+            }
+
+            case Continue ctnd -> {
+                writer.print("Continue()");
+            }
+            
+            case Break brk -> {
+                writer.print("Break()");
+            }
+
+            default -> {
+                // should never reach here
             }
         }
 
