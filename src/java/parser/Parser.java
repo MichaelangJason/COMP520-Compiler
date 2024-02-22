@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 /**
  * @author cdubach
  */
-public class Parser  extends CompilerPass {
+public class Parser extends CompilerPass {
 
     private Token token;
 

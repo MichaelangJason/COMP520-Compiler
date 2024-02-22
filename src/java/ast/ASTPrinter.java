@@ -61,13 +61,35 @@ public class ASTPrinter {
 
             case BaseType bt -> {
                 // to complete ...
+                writer.print(bt.name());
+            }
+
+            case PointerType ptrt -> {
+                writer.print("PointerType(");
+                visit(ptrt.type);
+                writer.print(")");
+            }
+
+            case ArrayType arrt -> {
+                writer.print("ArrayType(");
+                visit(arrt.type);
+                writer.print(", " + arrt.nbElmts);
+                writer.print(")");
+            }
+
+            case StructType st -> {
+                writer.print("StructType(");
+                writer.print(st.name);
+                writer.print(")");
             }
 
             case StructTypeDecl std -> {
                 // to complete
             }
-
             // to complete ...
+            default -> {
+
+            }
         }
 
     }
