@@ -1,9 +1,13 @@
 package parser;
 
 
+import ast.BaseType;
 import ast.Decl;
+import ast.PointerType;
 import ast.Program;
+import ast.StructType;
 import ast.StructTypeDecl;
+import ast.Type;
 import lexer.Token;
 import lexer.Token.Category;
 import lexer.Tokeniser;
@@ -234,23 +238,35 @@ public class Parser extends CompilerPass {
     /**
      * type       ::= ("int" | "char" | "void" | structtype) ("*")*
      */
-    private void parseType() {
+    private Type parseType() {
+        Type type;
         if (accept(Category.INT, Category.CHAR, Category.VOID)) {
-            expect(Category.INT, Category.CHAR, Category.VOID);
+            Token typeToken = expect(Category.INT, Category.CHAR, Category.VOID);
+            type = switch(typeToken.category) {
+                case Category.INT -> BaseType.INT;
+                case Category.CHAR -> BaseType.CHAR;
+                case Category.VOID -> BaseType.VOID;
+                default -> throw new IllegalArgumentException();
+            };
         } else {
-            parseStructtype();
+            type = parseStructtype();
         }
+
         while (accept(Category.ASTERIX)) {
             expect(Category.ASTERIX);
+            type = new PointerType(type);
         }
+        
+        return type;
     }
 
     /**
      * structtype ::= "struct" IDENT
      */
-    private void parseStructtype() {
+    private StructType parseStructtype() {
         expect(Category.STRUCT);
         Token id = expect(Category.IDENTIFIER);
+        return new StructType(id.data);
     }
 
     /*
