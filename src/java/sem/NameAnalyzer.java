@@ -38,6 +38,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			case Type t -> {}
 
 			// to complete ...
+			default -> {}
 		};
 
 	}

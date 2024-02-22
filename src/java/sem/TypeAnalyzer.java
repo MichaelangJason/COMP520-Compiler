@@ -46,6 +46,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			// to complete ...
+			default -> { yield null; }
 		};
 
 	}
