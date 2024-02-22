@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ArrayAccessExpr extends Expr {
-    final Expr varName, idx;
+    public final Expr varName, idx;
     
     public ArrayAccessExpr(Expr varName, Expr idx) {
         this.varName = varName;

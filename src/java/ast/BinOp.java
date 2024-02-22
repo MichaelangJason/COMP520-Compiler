@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class BinOp extends Expr {
-    final Expr lhs, rhs;
-    final Op op;
+    public final Expr lhs, rhs;
+    public final Op op;
 
     public BinOp (Expr lhs, Op op, Expr rhs) {
         this.lhs = lhs;

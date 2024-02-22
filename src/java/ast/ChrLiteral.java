@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ChrLiteral extends Expr {
-    char val;
+    public char val;
 
     @Override
     public List<ASTNode> children() {

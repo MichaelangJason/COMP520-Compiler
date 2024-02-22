@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class IntLiteral extends Expr {
-    int val;
+    public int val;
 
     @Override
     public List<ASTNode> children() {

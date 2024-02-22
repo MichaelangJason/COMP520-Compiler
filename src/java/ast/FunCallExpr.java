@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class FunCallExpr extends Expr {
-    final String name;
-    final List<Expr> args;
+    public final String name;
+    public final List<Expr> args;
 
     public FunCallExpr(String name, List<Expr> args) {
         this.name = name;

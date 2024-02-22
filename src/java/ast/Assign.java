@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class Assign extends Expr {
-    final Expr lhs, rhs;
+    public final Expr lhs, rhs;
 
     public Assign(Expr lhs, Expr rhs) {
         this.lhs = lhs;

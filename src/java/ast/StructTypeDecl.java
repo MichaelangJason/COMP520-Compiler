@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class StructTypeDecl extends Decl {
-    final List<VarDecl> vardecls;
+    public final List<VarDecl> vardecls;
     
     public StructTypeDecl(StructType type, List<VarDecl> varDecls) {
         this.type = type;
-        this.name = type.name;
+        // this.name = type.name;
         this.vardecls = varDecls;
     }
 
