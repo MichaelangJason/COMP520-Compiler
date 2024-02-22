@@ -34,11 +34,7 @@ public class ASTPrinter {
                 writer.flush();
             }  
             
-            case VarExpr v -> {
-                writer.print("VarExpr(");
-                writer.print(v.name);
-                writer.print(")");
-            }
+            
 
             // Types
             case BaseType bt -> {
@@ -107,7 +103,105 @@ public class ASTPrinter {
                 }
                 writer.print(")");
             }
-            // to complete ...
+
+            // expr parts
+            case IntLiteral intlit -> {
+                writer.print("IntLiteral(");
+                writer.print(intlit.val);
+                writer.print(")");
+            }
+
+            case StrLiteral strlit -> {
+                writer.print("StrLiteral(");
+                writer.print(strlit.val);
+                writer.print(")");
+            }
+
+            case ChrLiteral chrlit -> {
+                writer.print("ChrLiteral(");
+                writer.print(chrlit.val);
+                writer.print(")");
+            }
+
+            case VarExpr v -> {
+                writer.print("VarExpr(");
+                writer.print(v.name);
+                writer.print(")");
+            }
+
+            case FunCallExpr fexpr -> {
+                writer.print("FuncallExpr(");
+                writer.print(fexpr.name);
+                for (Expr vd : fexpr.args) {
+                    writer.print(",");
+                    visit(vd);
+                }
+                writer.print(")");
+            }
+
+            case BinOp binop -> {
+                writer.print("BinOp(");
+                visit(binop.lhs);
+                writer.print(",");
+                visit(binop.op); // maybe print binop.op.name() is better
+                writer.print(",");
+                visit(binop.rhs);
+                writer.print(")");
+            }
+
+            case ArrayAccessExpr arrexpr -> {
+                writer.print("ArrayAccessExpr(");
+                visit(arrexpr.varName);
+                writer.print(",");
+                visit(arrexpr.idx);
+                writer.print(")");
+            }
+
+            case FieldAccessExpr fieldexpr -> {
+                writer.print("FieldAccessExpr(");
+                visit(fieldexpr.field);
+                writer.print("," + fieldexpr.name);
+                writer.print(")");
+            }
+
+            case ValueAtExpr valexpr -> {
+                writer.print("FieldAccessExpr(");
+                visit(valexpr.expr);
+                writer.print(")");
+            }
+
+            case AddressOfExpr addrsexpr -> {
+                writer.print("AddressOfExpr(");
+                visit(addrsexpr.expr);
+                writer.print(")");
+            }
+
+            case SizeOfExpr sizeexpr -> {
+                writer.print("SizeOfExpr(");
+                visit(sizeexpr.subtype);
+                writer.print(")");
+            }
+
+            case TypecastExpr tcastexpr -> {
+                writer.print("TypecastExpr(");
+                visit(tcastexpr.subtype);
+                writer.print(",");
+                visit(tcastexpr.expr);
+                writer.print(")");
+            }
+
+            case Assign assign -> {
+                writer.print("Assign(");
+                visit(assign.lhs);
+                writer.print(",");
+                visit(assign.rhs);
+                writer.print(")");
+            }
+
+            case Op op -> {
+                writer.print(op.name());
+            }
+
             default -> {
 
             }
