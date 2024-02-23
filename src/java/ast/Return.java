@@ -6,8 +6,8 @@ import java.util.List;
 public final class Return extends Stmt {
     public Expr expr;
     
-    public Return(Expr... exprs) {
-        if (exprs.length > 0) this.expr = exprs[0];
+    public Return(Expr expr) {
+        this.expr = expr;
     }
 
     @Override
