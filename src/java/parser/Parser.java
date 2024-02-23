@@ -1,13 +1,17 @@
 package parser;
 
 
+import ast.ASTNode;
+import ast.ArrayType;
 import ast.BaseType;
 import ast.Decl;
+import ast.Expr;
 import ast.PointerType;
 import ast.Program;
 import ast.StructType;
 import ast.StructTypeDecl;
 import ast.Type;
+import ast.VarDecl;
 import lexer.Token;
 import lexer.Token.Category;
 import lexer.Tokeniser;
@@ -146,8 +150,8 @@ public class Parser extends CompilerPass {
                 decls.add(parseStructDecl());
             } else {
                 // type IDENT
-                parseType();
-                expect(Category.IDENTIFIER);
+                Type type = parseType();
+                Token identifier = expect(Category.IDENTIFIER);
 
                 // fundecl or funproto
                 if (token.category == Category.LPAR) {
@@ -162,7 +166,8 @@ public class Parser extends CompilerPass {
                     }
                 } else {
                     // vardecl
-                    parseVardeclPrime();
+                    Type arr = parseVardeclPrime(type);
+                    decls.add(new VarDecl(arr, identifier.data));
                 }
             }
         }
@@ -185,45 +190,49 @@ public class Parser extends CompilerPass {
      */
     private StructTypeDecl parseStructDecl(){
         // structtype
-        parseStructtype();
+        StructType type = parseStructtype();
         // "{"
         expect(Category.LBRA);
+
+        List<VarDecl> vds = new ArrayList<>();
         // (vardecl)+
-        parseType();
-        Token id = expect(Category.IDENTIFIER);
-        parseVardeclPrime();
+        vds.add(parseVardecl());
 
         while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
-            parseVardecl();
+            vds.add(parseVardecl());
         }
 
         expect(Category.RBRA);
         expect(Category.SC);
-        return null;
+        return new StructTypeDecl(type, vds);
     }
 
     /**
      * vardecl  ::= type IDENT vardecl'
      */
-    private void parseVardecl() {
-        parseType();
-        expect(Category.IDENTIFIER);
-        parseVardeclPrime();
+    private VarDecl parseVardecl() {
+        Type type = parseType();
+        Token id = expect(Category.IDENTIFIER);
+        
+        Type arr = parseVardeclPrime(type);
+        return new VarDecl(arr, id.data);
     }
 
     /**
      * vardecl' ::= ("[" INT_LITERAL "]")* ";"
      */
-    private void parseVardeclPrime() {
+    private Type parseVardeclPrime(Type type) {
         while (accept(Category.LSBR)
             && lookAhead(1).category == Category.INT_LITERAL
             && lookAhead(2).category == Category.RSBR
         ) {
             expect(Category.LSBR);
-            expect(Category.INT_LITERAL);
+            Token len = expect(Category.INT_LITERAL);
             expect(Category.RSBR);
+            type = new ArrayType(type, Integer.parseInt(len.data));
         }
         expect(Category.SC);
+        return type;
     }
 
     /**
@@ -305,9 +314,7 @@ public class Parser extends CompilerPass {
         
         // (vardecl) *
         while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
-            parseType();
-            expect(Category.IDENTIFIER);
-            parseVardeclPrime();
+            parseVardecl();
         }
 
         // (stmt) *

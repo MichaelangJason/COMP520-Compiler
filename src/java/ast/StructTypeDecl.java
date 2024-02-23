@@ -12,12 +12,11 @@ public final class StructTypeDecl extends Decl {
         this.vardecls = varDecls;
     }
 
-    // to be completed
     public List<ASTNode> children() {
         List<ASTNode> subnodes = new ArrayList<>();
         subnodes.add(type);
         subnodes.addAll(vardecls);
-        return subnodes; // To change!
+        return subnodes;
     }
 
 }
