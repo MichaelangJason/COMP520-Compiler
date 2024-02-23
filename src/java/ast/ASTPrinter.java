@@ -202,7 +202,7 @@ public class ASTPrinter {
                     if (blk.vds.indexOf(vd) < blk.vds.size() - 1) writer.print(",");
                 }
                 for (Stmt stmt: blk.stmts) {
-                    writer.print(",");
+                    if (blk.vds.size() > 0 || blk.stmts.indexOf(stmt) > 0) writer.print(",");
                     visit(stmt);
                 };
                 writer.print(")");
@@ -217,7 +217,7 @@ public class ASTPrinter {
             }
 
             case If ifs -> {
-                writer.print("While(");
+                writer.print("If(");
                 visit(ifs.expr);
                 writer.print(",");
                 visit(ifs.ifBranch);
@@ -240,6 +240,12 @@ public class ASTPrinter {
             
             case Break brk -> {
                 writer.print("Break()");
+            }
+
+            case ExprStmt exprstmt -> {
+                writer.print("ExprStmt(");
+                visit(exprstmt.expr);
+                writer.print(")");
             }
 
             default -> {

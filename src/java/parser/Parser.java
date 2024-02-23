@@ -511,16 +511,16 @@ public class Parser extends CompilerPass {
             // assignment
             expect(Category.ASSIGN);
             Expr expr = parseExp();
-            parseExpPrime(new Assign(prev, expr));
+            prev = parseExpPrime(new Assign(prev, expr));
         } else if (accept(Category.LSBR)) {
             Expr rhs = parseArrayAccessPrime();
             ArrayAccessExpr expr = new ArrayAccessExpr(prev, rhs);
-            parseExpPrime(expr);
+            prev = parseExpPrime(expr);
 
         } else if (accept(Category.DOT)) {
             String name = parseFieldAccessPrime();
             FieldAccessExpr expr = new FieldAccessExpr(prev, name);
-            parseExpPrime(expr);
+            prev = parseExpPrime(expr);
         } else if (accept(
             Category.GT, 
             Category.LT, 
@@ -556,7 +556,7 @@ public class Parser extends CompilerPass {
             };
             Expr rhs = parseExp();
             BinOp binop = new BinOp(prev, op, rhs);
-            parseExpPrime(binop);
+            prev = parseExpPrime(binop);
         }
 
         return prev;
