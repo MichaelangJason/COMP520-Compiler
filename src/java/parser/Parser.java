@@ -531,12 +531,10 @@ public class Parser extends CompilerPass {
      * # size of type #beta9
      */
     void parseSizeof() {
-        if (accept(Category.SIZEOF)) {
-            expect(Category.SIZEOF);
-            expect(Category.LPAR);
-            parseType();
-            expect(Category.RPAR);
-        }
+        expect(Category.SIZEOF);
+        expect(Category.LPAR);
+        parseType();
+        expect(Category.RPAR);
     }
 
     /**
