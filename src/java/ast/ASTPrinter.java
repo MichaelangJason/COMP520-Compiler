@@ -157,7 +157,7 @@ public class ASTPrinter {
             }
 
             case ValueAtExpr valexpr -> {
-                writer.print("FieldAccessExpr(");
+                writer.print("ValueAtExpr(");
                 visit(valexpr.expr);
                 writer.print(")");
             }
