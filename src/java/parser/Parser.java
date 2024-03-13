@@ -1,7 +1,6 @@
 package parser;
 
 
-import ast.ASTNode;
 import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
 import ast.ArrayType;
@@ -42,6 +41,7 @@ import lexer.Tokeniser;
 import util.CompilerPass;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -398,7 +398,7 @@ public class Parser extends CompilerPass {
         if (accept(Category.WHILE)) {
             expect(Category.WHILE);
             expect(Category.LPAR);
-            Expr expr = parseP9();
+            Expr expr = parseExp(0);
             expect(Category.RPAR);
             Stmt stmt = parseStmt();
 
@@ -407,7 +407,7 @@ public class Parser extends CompilerPass {
         } else if (accept(Category.IF)) {
             expect(Category.IF);
             expect(Category.LPAR);
-            Expr expr = parseP9();
+            Expr expr = parseExp(0);
             expect(Category.RPAR);
             Stmt ifBranch = parseStmt();
             Stmt elseBranch = null; // explicitly assign null
@@ -426,7 +426,7 @@ public class Parser extends CompilerPass {
             if (accept(Category.SC)) {
                 expect(Category.SC);
             } else {
-                expr = parseP9();
+                expr = parseExp(0);
                 expect(Category.SC);
             }
 
@@ -440,304 +440,12 @@ public class Parser extends CompilerPass {
         } else if (accept(Category.LBRA)) {
             return parseBlock();
         } else {
-            Expr expr = parseP9();
+            Expr expr = parseExp(0);
             expect(Category.SC);
             return new ExprStmt(expr);
         }
     }
 
-        /**
-         *  Precedence 9: = 
-         *  Right-to-left (Recursive w/out left-recursion)
-         *  p9 ::= Terminal '=' p9 | Terminal
-         */
-        private Expr parseP9() {
-            Expr lhs = parseP8();
-            if (accept(Category.ASSIGN)) {
-                nextToken();
-                Expr rhs = parseP9();
-                return new Assign(lhs, rhs);
-            }
-            return lhs;
-        }
-
-        /**
-         *  Precedence 8: ||
-         *  Left-to-right (iterative)
-         *  p8 ::= p9 (|| p9)*
-         */
-        private Expr parseP8() {
-            Expr lhs = parseP7();
-            while (accept(Category.LOGOR)) {
-                nextToken();
-                Op op = Op.OR;
-                
-                Expr rhs = parseP7();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-    
-        /**
-         *  Precedence 7: &&
-         *  Left-to-right (iterative)
-         *  p7 ::= p8 (&& p8)*
-         */
-        private Expr parseP7() {
-            Expr lhs = parseP6();
-            while (accept(Category.LOGAND)) {
-                nextToken();
-                Op op = Op.AND;
-                
-                Expr rhs = parseP6();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-
-        /**
-         *  Precedence 6: ==, !=
-         *  Left-to-right (iterative)
-         *  p6 ::= p7 (('==' | '!=') p7)*
-         */
-        private Expr parseP6() {
-            Expr lhs = parseP5();
-            while (accept(Category.EQ, Category.NE)) {
-                Token t = nextToken();
-                Op op = t.category == Category.EQ
-                    ? Op.EQ
-                    : Op.NE;
-                
-                Expr rhs = parseP5();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-
-                /**
-         *  Precedence 5: <, <=, >, >=
-         *  Left-to-right (iterative)
-         *  p5 ::= p6 (('<' | '<-' | '>' | '>=') p6)*
-         */
-        private Expr parseP5() {
-            Expr lhs = parseP4();
-            while (accept(
-                Category.LT,
-                Category.LE,
-                Category.GT,
-                Category.GE
-            )) {
-                Token t = nextToken();
-                Op op = switch(t.category) {
-                    case LT -> Op.LT;
-                    case LE -> Op.LE;
-                    case GT -> Op.GT;
-                    case GE -> Op.GE;
-                    default -> throw new Error();
-                };
-                Expr rhs = parseP4();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-
-        /**
-         *  Precedence 4: +, -
-         *  Left-to-right (iterative)
-         *  p4 ::= p5 (('+' | '-') p5)*
-         */
-        private Expr parseP4() {
-            Expr lhs = parseP3();
-            while (accept(Category.PLUS, Category.MINUS)) {
-                Token t = nextToken();
-                Op op = t.category == Category.PLUS
-                    ? Op.ADD
-                    : Op.SUB;
-                
-                Expr rhs = parseP3();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-
-        /**
-         *  Precedence 3: *, /, %
-         *  Left-to-right (iterative)
-         *  p3 ::= p4 (('*' | '/' | '%') p4)*
-         */
-        private Expr parseP3() {
-            Expr lhs = parseP2();
-            while (accept(Category.ASTERIX, Category.DIV, Category.REM)) {
-                Token t = nextToken();
-                Op op = switch(t.category) {
-                    case ASTERIX -> Op.MUL;
-                    case DIV -> Op.DIV;
-                    case REM -> Op.MOD;
-                    default -> throw new Error();
-                };
-    
-                Expr rhs = parseP2();
-                lhs = new BinOp(lhs, op, rhs);
-            }
-            return lhs;
-        }
-
-        /**
-         *  Precedence 2: unary +, unary -, (type), *, &
-         *  Right-to-left (Recursive w/out left-recursion)
-         *  p2 :== '+' p2 | '-' p2 | (type) p2 | '*' p2 | '&' p2 | p1
-         */
-        private Expr parseP2() {
-            if (accept(Category.PLUS)) {
-                // unary plus
-                expect(Category.PLUS);
-                Expr p3 = parseP2();
-                return new BinOp(new IntLiteral(0), Op.ADD, p3);
-        
-            } else if (accept(Category.MINUS)) {
-                // unary minus
-                expect(Category.MINUS);
-                Expr p3 = parseP2();
-                return new BinOp(new IntLiteral(0), Op.SUB, p3);
-    
-            } else if (accept(Category.LPAR)) {
-                // typecast
-                expect(Category.LPAR);
-                Type type = parseType();
-                expect(Category.RPAR);
-    
-                Expr p3 = parseP2();
-                return new TypecastExpr(type, p3);
-    
-            } else if (accept(Category.ASTERIX)) {
-                // valueat
-                expect(Category.ASTERIX);
-                Expr p3 = parseP2();
-                return new ValueAtExpr(p3);
-    
-            } else if (accept(Category.AND)) {
-                // addressof
-                expect(Category.AND);
-                Expr p3 = parseP2();
-                return new AddressOfExpr(p3);
-            } else {
-                return parseP1();
-            }
-        }
-
-        /**
-         *  Precedence 1: (), [], .
-         *  Left-to-right (iterative)
-         *  p1 ::= (terminal(p2)*) | [p2[p2]*] | p2(.p2)* | p2
-         */
-        private Expr parseP1() {
-            Expr lhs = parseTerminal();
-            
-            while (accept(Category.LPAR, Category.LSBR, Category.DOT)) {
-                Token t = nextToken();
-
-                switch(t.category) {
-                    case LPAR: {
-                        lhs = parseTerminal();
-                        expect(Category.RPAR);
-                        break;
-                    }
-
-                    case LSBR: {
-                        Expr idx = parseTerminal();
-                        lhs = new ArrayAccessExpr(lhs, idx);
-                        expect(Category.RSBR);
-                        break;
-                    }
-
-                    case DOT: {
-                        Token k = expect(Category.IDENTIFIER);
-                        lhs = new FieldAccessExpr(lhs, k.data);
-                        break;
-                    }
-
-                    default: throw new Error();
-                }
-            }
-            
-            return lhs;
-        }
-
-        /**
-         * Terminal branch
-         * factor  ::= number | string | char | id | p1
-         */
-        private Expr parseTerminal() {
-            if (accept(Category.INT_LITERAL, Category.STRING_LITERAL, Category.CHAR_LITERAL)) {
-                Token tk = expect(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL);
-                return switch(tk.category) {
-                    case INT_LITERAL -> new IntLiteral(Integer.parseInt(tk.data));
-                    case STRING_LITERAL -> new StrLiteral(tk.data);
-                    case CHAR_LITERAL -> new ChrLiteral(tk.data);
-                    default -> throw new IllegalArgumentException();
-                };
-            } else if (accept(Category.IDENTIFIER)) {
-                return parseExpIdentAST();
-            } else if (accept(Category.SIZEOF)) {
-                return parseSizeof();
-            } else {
-                return parseP9();
-            }
-        }
-
-        /**
-         * sizeof ::= "sizeof" "(" type ")"  
-         * # size of type #beta9
-         */
-        private SizeOfExpr parseSizeof() {
-            expect(Category.SIZEOF);
-            expect(Category.LPAR);
-            Type type = parseType();
-            expect(Category.RPAR);
-            return new SizeOfExpr(type);
-        }
-    
-        private Expr parseExpIdentAST() {
-            Token id = expect(Category.IDENTIFIER);
-            Expr expr = new VarExpr(id.data);
-            if (accept(Category.LPAR)) {
-                // funcall
-                List<Expr> args = parseFuncallPrimeAST();
-                expr = new FunCallExpr(id.data, args);
-            }
-            return expr;
-        }
-    
-        private List<Expr> parseFuncallPrimeAST() {
-            expect(Category.LPAR);
-            List<Expr> args = new ArrayList<>(); 
-            if (accept(
-                Category.LPAR,
-                Category.IDENTIFIER,
-                Category.INT_LITERAL,
-                Category.MINUS,
-                Category.PLUS,
-                Category.CHAR_LITERAL,
-                Category.STRING_LITERAL,
-                Category.ASTERIX,
-                Category.AND,
-                Category.SIZEOF
-            ))
-            {
-                args.add(parseP1());
-                while (accept(Category.COMMA)) {
-                    expect(Category.COMMA);
-                    args.add(parseP1());
-                }
-            }
-            
-            expect(Category.RPAR);
-            return args;
-        }
-        
-
-
-    /* ----------------------Deprecated--------------------- */
     /*
      * A valid exp can start with:
      * "(" IDENT INT_LITERAL "-" "+" CHAR_LITERAL STRING_LITERAL "*" "&" "sizeof"
@@ -752,40 +460,41 @@ public class Parser extends CompilerPass {
      *       | ExpIdent exp'
      *      
      */
-    private Expr parseExp() {
+    private Expr parseExp(int prc) {
         // betas
         if (accept(Category.IDENTIFIER)) {
             Expr expr = parseExpIdent();
-            return parseExpPrime(expr);
+            return parseExpPrime(expr, prc);
         } else if (accept(Category.MINUS, Category.PLUS)) {
             //
             Token optk = expect(Category.MINUS, Category.PLUS);
             Op op = optk.category == Category.MINUS ? Op.SUB : Op.ADD;
-            Expr expr = parseExp();
+            Expr expr = parseExp(prc);
             BinOp binop = new BinOp(new IntLiteral(0), op, expr);
 
-            return parseExpPrime(binop);
+            return parseExpPrime(binop, prc);
         } else if (accept(Category.LPAR)) {
-            Expr expr = parseExpLpar();
-            return parseExpPrime(expr);
+            Expr expr = parseExpLpar(prc);
+            return parseExpPrime(expr, prc);
         } else if (accept(Category.ASTERIX)) {
             ValueAtExpr v = parseValueat();
-            return parseExpPrime(v);
+            return parseExpPrime(v, prc);
         } else if (accept(Category.AND)) {
             AddressOfExpr a = parseAddressof();
-            return parseExpPrime(a);
+            return parseExpPrime(a, prc);
         } else if (accept(Category.SIZEOF)) {
             SizeOfExpr s = parseSizeof();
-            return parseExpPrime(s);
+            return parseExpPrime(s, prc);
         } else {
             Token tk = expect(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL);
             Expr lit = switch(tk.category) {
                 case INT_LITERAL -> new IntLiteral(Integer.parseInt(tk.data));
                 case STRING_LITERAL -> new StrLiteral(tk.data);
                 case CHAR_LITERAL -> new ChrLiteral(tk.data);
-                default -> throw new IllegalArgumentException();
+                default -> null;
             };    
-            return parseExpPrime(lit);
+            if (lit == null) return null;
+            return parseExpPrime(lit, prc);
         }    
     }    
     
@@ -797,37 +506,37 @@ public class Parser extends CompilerPass {
      *        | (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp
      *        | epsilon
      */
-    private Expr parseExpPrime(Expr prev) {
+    private Expr parseExpPrime(Expr prev, int prc) {
+        // int prc = 0;
         // alphas
+        Category[][] cats = new Category[][] {
+            {Category.LOGOR},
+            {Category.LOGAND},
+            {Category.NE, Category.EQ},
+            {Category.GT, Category.LT, Category.GE, Category.LE},
+            {Category.PLUS, Category.MINUS},
+            {Category.DIV, Category.ASTERIX, Category.REM},
+        };
+        
         if (accept(Category.ASSIGN)) {
             // assignment
             expect(Category.ASSIGN);
-            Expr expr = parseExp();
-            prev = parseExpPrime(new Assign(prev, expr));
+            Expr expr = parseExp(0);
+            prev = parseExpPrime(new Assign(prev, expr), prc);
         } else if (accept(Category.LSBR)) {
             Expr rhs = parseArrayAccessPrime();
             ArrayAccessExpr expr = new ArrayAccessExpr(prev, rhs);
-            prev = parseExpPrime(expr);
-
+            prev = parseExpPrime(expr, prc);
         } else if (accept(Category.DOT)) {
             String name = parseFieldAccessPrime();
             FieldAccessExpr expr = new FieldAccessExpr(prev, name);
-            prev = parseExpPrime(expr);
+            prev = parseExpPrime(expr, prc);
         } else if (accept(
-            Category.GT, 
-            Category.LT, 
-            Category.GE, 
-            Category.LE, 
-            Category.NE, 
-            Category.EQ, 
-            Category.PLUS, 
-            Category.MINUS,
-            Category.DIV,
-            Category.ASTERIX,
-            Category.REM,
-            Category.LOGOR,
-            Category.LOGAND)) 
-        {
+            Arrays.stream(
+                Arrays.copyOfRange(cats, prc, cats.length))
+                      .flatMap(Arrays::stream)
+                      .toArray(Category[]::new)
+            )) {
             // Binary Operations
             Token optk = nextToken(); // consume it
             Op op = switch(optk.category) {
@@ -846,18 +555,58 @@ public class Parser extends CompilerPass {
                 case LOGAND -> Op.AND;
                 default -> throw new IllegalArgumentException();
             };
-            Expr rhs = parseExp();
-            BinOp binop = new BinOp(prev, op, rhs);
-            prev = parseExpPrime(binop);
-        }
+            Category[] ops = switch(optk.category) {
+                case ASTERIX, DIV, REM -> { prc = 6; yield cats[5]; }
+                case PLUS, MINUS -> { prc = 5; yield cats[4]; }
+                case GT, LT, GE, LE -> { prc = 4; yield cats[3]; }
+                case NE, EQ -> { prc = 3; yield cats[2]; }
+                case LOGAND -> { prc = 2; yield cats[1]; }
+                case LOGOR -> { prc = 1; yield cats[0]; }
+                default -> throw new Error();
+            };
+            
+            Expr rhs = parseExp(prc);
+            prev = new BinOp(prev, op, rhs);
 
+            while (accept(ops)) {
+                optk = nextToken();
+                op = switch(optk.category) {
+                    case GT -> Op.GT;
+                    case LT -> Op.LT;
+                    case GE -> Op.GE;
+                    case LE -> Op.LE;
+                    case NE -> Op.NE;
+                    case EQ -> Op.EQ;
+                    case PLUS -> Op.ADD;
+                    case MINUS -> Op.SUB;
+                    case DIV -> Op.DIV;
+                    case ASTERIX -> Op.MUL;
+                    case REM -> Op.MOD;
+                    case LOGOR -> Op.OR;
+                    case LOGAND -> Op.AND;
+                    default -> throw new IllegalArgumentException();
+                };
+                rhs = parseExp(prc);
+                prev = new BinOp(prev, op, rhs);
+            }
+
+            // do {
+            //     rhs = parseExp(prc);
+            //     prev = new BinOp(prev, op, rhs);
+            // } while(accept(ops));
+
+            // Expr rhs = parseExp(prc);
+            // BinOp binop = new BinOp(prev, op, rhs);
+            prev = parseExpPrime(prev, 0);
+        }
+        
         return prev;
     }
 
     /**
      * ExpLpar ::= "(" exp ")" | typecast
      */
-    private Expr parseExpLpar() {
+    private Expr parseExpLpar(int prc) {
         Category[] types = new Category[]{Category.INT, Category.CHAR, Category.VOID, Category.STRUCT};
         
         Expr expr;
@@ -865,7 +614,7 @@ public class Parser extends CompilerPass {
             expr = parseTypecast();
         } else {
             expect(Category.LPAR);
-            expr = parseExp();
+            expr = parseExp(0);
             expect(Category.RPAR);
         }
 
@@ -906,10 +655,10 @@ public class Parser extends CompilerPass {
             Category.SIZEOF
         ))
         {
-            args.add(parseExp());
+            args.add(parseExp(0));
             while (accept(Category.COMMA)) {
                 expect(Category.COMMA);
-                args.add(parseExp());
+                args.add(parseExp(0));
             }
         }
         
@@ -918,12 +667,25 @@ public class Parser extends CompilerPass {
     }
 
     /**
+     * sizeof ::= "sizeof" "(" type ")"  
+     * # size of type #beta9
+     */
+    private SizeOfExpr parseSizeof() {
+        expect(Category.SIZEOF);
+        expect(Category.LPAR);
+        Type type = parseType();
+        expect(Category.RPAR);
+        return new SizeOfExpr(type);
+    }
+    
+
+    /**
      * valueat ::= "*" exp  
      * # Value at operator (pointer indirection) #beta7
      */
     private ValueAtExpr parseValueat() {
         expect(Category.ASTERIX);
-        return new ValueAtExpr(parseExp());
+        return new ValueAtExpr(parseExp(0));
     }
     
     /**
@@ -932,7 +694,7 @@ public class Parser extends CompilerPass {
      */
     private AddressOfExpr parseAddressof() {
         expect(Category.AND);
-        return new AddressOfExpr(parseExp());
+        return new AddressOfExpr(parseExp(0));
     }
 
     /**
@@ -943,7 +705,7 @@ public class Parser extends CompilerPass {
         expect(Category.LPAR);
         Type type = parseType();
         expect(Category.RPAR);
-        Expr expr = parseExp();
+        Expr expr = parseExp(0);
 
         return new TypecastExpr(type, expr);
     }
@@ -955,7 +717,7 @@ public class Parser extends CompilerPass {
      */
     private Expr parseArrayAccessPrime() {
         expect(Category.LSBR);
-        Expr expr = parseExp();
+        Expr expr = parseExp(0);
         expect(Category.RSBR);
         return expr;
     }
