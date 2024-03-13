@@ -58,7 +58,7 @@ public class ASTPrinter {
                 // to complete
                 writer.print("StructTypeDecl(");
                 visit(std.type);
-                writer.print(","+std.name);
+                // writer.print(","+std.name);
                 for (VarDecl vd: std.vardecls) {
                     writer.print(",");
                     visit(vd);
