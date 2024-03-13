@@ -41,7 +41,6 @@ import lexer.Token.Category;
 import lexer.Tokeniser;
 import util.CompilerPass;
 
-import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -399,7 +398,7 @@ public class Parser extends CompilerPass {
         if (accept(Category.WHILE)) {
             expect(Category.WHILE);
             expect(Category.LPAR);
-            Expr expr = parseExp();
+            Expr expr = parseP1();
             expect(Category.RPAR);
             Stmt stmt = parseStmt();
 
@@ -408,7 +407,7 @@ public class Parser extends CompilerPass {
         } else if (accept(Category.IF)) {
             expect(Category.IF);
             expect(Category.LPAR);
-            Expr expr = parseExp();
+            Expr expr = parseP1();
             expect(Category.RPAR);
             Stmt ifBranch = parseStmt();
             Stmt elseBranch = null; // explicitly assign null
@@ -427,7 +426,7 @@ public class Parser extends CompilerPass {
             if (accept(Category.SC)) {
                 expect(Category.SC);
             } else {
-                expr = parseExp();
+                expr = parseP1();
                 expect(Category.SC);
             }
 
@@ -441,11 +440,281 @@ public class Parser extends CompilerPass {
         } else if (accept(Category.LBRA)) {
             return parseBlock();
         } else {
-            Expr expr = parseExp();
+            Expr expr = parseP1();
             expect(Category.SC);
             return new ExprStmt(expr);
         }
     }
+
+    
+        /**
+         *  Precedence 1: (), [], .
+         *  Left-to-right (iterative)
+         *  p1 ::= (p2) | [p2] | p2(.p2)* | p2
+         */
+        private Expr parseP1() {
+            if (accept(Category.LPAR)) {
+                expect(Category.LPAR);
+                Expr p2 = parseP2();
+                expect(Category.RPAR);
+                return p2;
+    
+            } else if (accept(Category.LSBR)) {
+                expect(Category.LSBR);
+                Expr p2 = parseP2();
+                expect(Category.RSBR);
+                return p2;
+    
+            } else {
+                Expr p2 = parseP2();
+                while (accept(Category.DOT)) {
+                    expect(Category.DOT);
+                    Token t = expect(Category.IDENTIFIER);
+    
+                    p2 = new FieldAccessExpr(p2, t.data);
+                }
+                return p2;
+            }
+        }
+    
+        /**
+         *  Precedence 2: unary +, unary -, (type), *, &
+         *  Right-to-left (Recursive w/out left-recursion)
+         *  p2 :== '+' p3 | '-' p3 | (type) p3 | '*' p3 | '&' p3 | p3
+         */
+        private Expr parseP2() {
+            if (accept(Category.PLUS)) {
+                // unary plus
+                expect(Category.PLUS);
+                Expr p3 = parseP3();
+                return new BinOp(new IntLiteral(0), Op.ADD, p3);
+        
+            } else if (accept(Category.MINUS)) {
+                // unary minus
+                expect(Category.MINUS);
+                Expr p3 = parseP3();
+                return new BinOp(new IntLiteral(0), Op.SUB, p3);
+    
+            } else if (accept(Category.LPAR)) {
+                // typecast
+                expect(Category.LPAR);
+                Type type = parseType();
+                expect(Category.RPAR);
+    
+                Expr p3 = parseP3();
+                return new TypecastExpr(type, p3);
+    
+            } else if (accept(Category.ASTERIX)) {
+                // valueat
+                expect(Category.ASTERIX);
+                Expr p3 = parseP3();
+                return new ValueAtExpr(p3);
+    
+            } else if (accept(Category.AND)) {
+                // addressof
+                expect(Category.AND);
+                Expr p3 = parseP3();
+                return new AddressOfExpr(p3);
+            } else {
+                return parseP3();
+            }
+        }
+    
+        /**
+         *  Precedence 3: *, /, %
+         *  Left-to-right (iterative)
+         *  p3 ::= p4 (('*' | '/' | '%') p4)*
+         */
+        private Expr parseP3() {
+            Expr lhs = parseP4();
+            while (accept(Category.ASTERIX, Category.DIV, Category.REM)) {
+                Token t = nextToken();
+                Op op = switch(t.category) {
+                    case ASTERIX -> Op.MUL;
+                    case DIV -> Op.DIV;
+                    case REM -> Op.MOD;
+                    default -> throw new Error();
+                };
+    
+                Expr rhs = parseP4();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 4: +, -
+         *  Left-to-right (iterative)
+         *  p4 ::= p5 (('+' | '-') p5)*
+         */
+        private Expr parseP4() {
+            Expr lhs = parseP5();
+            while (accept(Category.PLUS, Category.MINUS)) {
+                Token t = nextToken();
+                Op op = t.category == Category.PLUS
+                    ? Op.ADD
+                    : Op.SUB;
+                
+                Expr rhs = parseP5();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 5: <, <=, >, >=
+         *  Left-to-right (iterative)
+         *  p5 ::= p6 (('<' | '<-' | '>' | '>=') p6)*
+         */
+        private Expr parseP5() {
+            Expr lhs = parseP6();
+            while (accept(
+                Category.LT,
+                Category.LE,
+                Category.GT,
+                Category.GE
+            )) {
+                Token t = nextToken();
+                Op op = switch(t.category) {
+                    case LT -> Op.LT;
+                    case LE -> Op.LE;
+                    case GT -> Op.GT;
+                    case GE -> Op.GE;
+                    default -> throw new Error();
+                };
+                Expr rhs = parseP6();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 6: ==, !=
+         *  Left-to-right (iterative)
+         *  p6 ::= p7 (('==' | '!=') p7)*
+         */
+        private Expr parseP6() {
+            Expr lhs = parseP7();
+            while (accept(Category.EQ, Category.NE)) {
+                Token t = nextToken();
+                Op op = t.category == Category.EQ
+                    ? Op.EQ
+                    : Op.NE;
+                
+                Expr rhs = parseP7();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 7: &&
+         *  Left-to-right (iterative)
+         *  p7 ::= p8 (&& p8)*
+         */
+        private Expr parseP7() {
+            Expr lhs = parseP8();
+            while (accept(Category.LOGAND)) {
+                nextToken();
+                Op op = Op.AND;
+                
+                Expr rhs = parseP8();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 8: ||
+         *  Left-to-right (iterative)
+         *  p8 ::= p9 (|| p9)*
+         */
+        private Expr parseP8() {
+            Expr lhs = parseP9();
+            while (accept(Category.LOGOR)) {
+                nextToken();
+                Op op = Op.OR;
+                
+                Expr rhs = parseP9();
+                lhs = new BinOp(lhs, op, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         *  Precedence 9: = 
+         *  Right-to-left (Recursive w/out left-recursion)
+         *  p9 ::= Terminal '=' p9 | Terminal
+         */
+        private Expr parseP9() {
+            Expr lhs = parseTerminal();
+            if (accept(Category.ASSIGN)) {
+                nextToken();
+                Expr rhs = parseP1();
+                return new Assign(lhs, rhs);
+            }
+            return lhs;
+        }
+    
+        /**
+         * Terminal branch
+         * factor  ::= number | string | char | id | p1
+         */
+        private Expr parseTerminal() {
+            if (accept(Category.INT_LITERAL, Category.STRING_LITERAL, Category.CHAR_LITERAL)) {
+                Token tk = expect(Category.INT_LITERAL, Category.CHAR_LITERAL, Category.STRING_LITERAL);
+                return switch(tk.category) {
+                    case INT_LITERAL -> new IntLiteral(Integer.parseInt(tk.data));
+                    case STRING_LITERAL -> new StrLiteral(tk.data);
+                    case CHAR_LITERAL -> new ChrLiteral(tk.data);
+                    default -> throw new IllegalArgumentException();
+                };
+                // return lit;
+            } else if (accept(Category.IDENTIFIER)) {
+                return parseExpIdentAST();
+            } else {
+                return parseP1();
+            }
+        }
+    
+        private Expr parseExpIdentAST() {
+            Token id = expect(Category.IDENTIFIER);
+            Expr expr = new VarExpr(id.data);
+            if (accept(Category.LPAR)) {
+                // funcall
+                List<Expr> args = parseFuncallPrimeAST();
+                expr = new FunCallExpr(id.data, args);
+            }
+            return expr;
+        }
+    
+        private List<Expr> parseFuncallPrimeAST() {
+            expect(Category.LPAR);
+            List<Expr> args = new ArrayList<>(); 
+            if (accept(
+                Category.LPAR,
+                Category.IDENTIFIER,
+                Category.INT_LITERAL,
+                Category.MINUS,
+                Category.PLUS,
+                Category.CHAR_LITERAL,
+                Category.STRING_LITERAL,
+                Category.ASTERIX,
+                Category.AND,
+                Category.SIZEOF
+            ))
+            {
+                args.add(parseP1());
+                while (accept(Category.COMMA)) {
+                    expect(Category.COMMA);
+                    args.add(parseP1());
+                }
+            }
+            
+            expect(Category.RPAR);
+            return args;
+        }
+        
 
     /*
      * A valid exp can start with:
@@ -493,10 +762,11 @@ public class Parser extends CompilerPass {
                 case STRING_LITERAL -> new StrLiteral(tk.data);
                 case CHAR_LITERAL -> new ChrLiteral(tk.data);
                 default -> throw new IllegalArgumentException();
-            };
+            };    
             return parseExpPrime(lit);
-        }
-    }
+        }    
+    }    
+    
 
     /**
      * exp' ::= "=" exp exp'
