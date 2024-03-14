@@ -2,9 +2,10 @@
 // void foo();
 void main() { 
     // a=b=c;
-    char* c; char n;
-    c = "f\a";
-    n = 'f';
+    // char* c; char n;
+    c = "f\n\b\r";
+    // n = '\b';
+    c = (int) '\a';
     // print_s(**s);
     // a=b.c=d;
     // 2 * (3 + 4) * 5;
