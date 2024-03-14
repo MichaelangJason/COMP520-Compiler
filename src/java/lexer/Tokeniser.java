@@ -186,17 +186,21 @@ public class Tokeniser extends CompilerPass {
     private int isEscapedChar(StringBuilder acc) {
         // check peek value, empty peek is covered within peek()
         if (!scanner.hasNext()) return -1;
-        switch (scanner.peek()) {
-            case 'a', 'b', 'n', 'r', 't', '\\', '0':
-                return 0;
-            case '\'': // single quote
-                return 1;
-            case '\"': // double quote
-                return 2;
-            default:
+        return switch (scanner.peek()) {
+            case 'a'-> 7;
+            case 'b'-> '\b';
+            case 'n'-> '\n';
+            case 'r'-> '\r';
+            case 't'-> '\t';
+            case '\\'-> '\\';
+            case '0'-> 0;
+            case '\''-> '\''; // single quote
+            case '\"'-> '\"'; // double quote
+            default-> {
                 acc.append(scanner.peek());
-                return -1;
-        }
+                yield -1;
+            }
+        };
     }
 
     /**
@@ -280,19 +284,25 @@ public class Tokeniser extends CompilerPass {
     private Token charLiteral(char c, int line, int column) {
         if (c == '\'' && scanner.hasNext()) {
             StringBuilder acc = new StringBuilder();
-            acc.append('\'');
+            // acc.append('\'');
             char t = scanner.peek();
 
             // escaped char case
+            int ascii = t;
             if (t == '\\') {
-                acc.append(scanner.next()); // consume \
-                if (isEscapedChar(acc) == -1) return invalidWithMsg(c, line, column);
-            } else if (!isLegalLiteralChar(t, false)) return invalidWithMsg(c, line, column);
+                scanner.next(); // consume \
+                ascii = isEscapedChar(acc);
+                if (ascii == -1) return invalidWithMsg(c, line, column);
+            } else if (!isLegalLiteralChar (t, false)) return invalidWithMsg(c, line, column);
 
-            acc.append(scanner.next()); // consume it
+            scanner.next(); // consume the char
+            acc.append((char) ascii);
             t = scanner.peek();
 
-            if (t == '\'') { acc.append(scanner.next()); return new Token(Token.Category.CHAR_LITERAL, acc.toString(), line, column); } // check, consume and return
+            if (t == '\'') {
+                scanner.next(); // consume ''
+                return new Token(Token.Category.CHAR_LITERAL, acc.toString(), line, column);
+            } // check, consume and return
             else return invalidWithMsg(acc.toString(), line, column);
         }
 
@@ -309,14 +319,21 @@ public class Tokeniser extends CompilerPass {
     private Token stringLiteral(char c, int line, int column) {
         if (c == '\"') {
             StringBuilder acc = new StringBuilder();
-            acc.append('\"');
+            // acc.append('\"');
             while (scanner.hasNext()) {
                 char t = scanner.peek();
-                if (t == '\"') { acc.append(scanner.next()); return new Token(Token.Category.STRING_LITERAL, acc.toString(), line, column); } // consume " and end
+                if (t == '\"') { 
+                    scanner.next();
+                    // acc.append(scanner.next()); 
+                    return new Token(Token.Category.STRING_LITERAL, acc.toString(), line, column); 
+                } // consume " and end
                 if (t == '\\') { // escaped char
-                    acc.append(scanner.next()); // consume \
-                    if (isEscapedChar(acc) == -1) break;
-                    acc.append(scanner.next()); // consume and continue
+                    scanner.next();
+                    // acc.append(scanner.next()); // consume \
+                    int ascii = isEscapedChar(acc);
+                    if (ascii == -1) break;
+                    scanner.next();
+                    acc.append((char) ascii); // consume and continue
                     continue;
                 }
                 if (!isLegalLiteralChar(t, true)) break;

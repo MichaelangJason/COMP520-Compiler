@@ -561,7 +561,7 @@ public class Parser extends CompilerPass {
                 case LOGAND -> Op.AND;
                 default -> throw new IllegalArgumentException();
             };
-            int nextPrc = prc;
+            int nextPrc;
             Category[] ops = switch(optk.category) {
                 case ASTERIX, DIV, REM -> { nextPrc = 6; yield cats[5]; }
                 case PLUS, MINUS -> { nextPrc = 5; yield cats[4]; }
