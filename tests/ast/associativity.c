@@ -1,3 +1,4 @@
+void foo();
 void main() { 
     // a=b=c;
     // a=b.c=d;
@@ -9,6 +10,15 @@ void main() {
     // 3 * 3 * -3;
     // 1-+++2;
     // y = 3*x; 
-    -x*3;
+    // -x*3;
+    // (a.b.c[123][53])[1];
+    // print("asdfasdf");
+    // print(asdfa);
+    // print(funcall(asdfa));
+    // true || false && (true || false) || false;
+    // n = c = b = ((int) (d.asd.fjk[91231][43]).afhb);
+    // &*ptr;
+    // a=c=b;
+    int a[1][2];
 }
 // void foo() { return; }

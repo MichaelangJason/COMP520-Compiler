@@ -122,7 +122,7 @@ public class ASTPrinter {
             }
 
             case FunCallExpr fexpr -> {
-                writer.print("FuncallExpr(");
+                writer.print("FunCallExpr(");
                 writer.print(fexpr.name);
                 for (Expr vd : fexpr.args) {
                     writer.print(",");
