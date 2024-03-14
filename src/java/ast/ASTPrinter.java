@@ -105,13 +105,13 @@ public class ASTPrinter {
 
             case StrLiteral strlit -> {
                 writer.print("StrLiteral(");
-                writer.print(strlit.val);
+                // writer.print(strlit.val);
                 writer.print(")");
             }
 
             case ChrLiteral chrlit -> {
                 writer.print("ChrLiteral(");
-                writer.print(chrlit.val);
+                // writer.print(chrlit.val);
                 writer.print(")");
             }
 

@@ -469,7 +469,7 @@ public class Parser extends CompilerPass {
             //
             Token optk = expect(Category.MINUS, Category.PLUS);
             Op op = optk.category == Category.MINUS ? Op.SUB : Op.ADD;
-            Expr expr = parseExp(prc);
+            Expr expr = parseExp(6);
             BinOp binop = new BinOp(new IntLiteral(0), op, expr);
 
             return parseExpPrime(binop, prc);
@@ -478,10 +478,10 @@ public class Parser extends CompilerPass {
             return parseExpPrime(expr, prc);
         } else if (accept(Category.ASTERIX)) {
             ValueAtExpr v = parseValueat();
-            return parseExpPrime(v, prc);
+            return parseExpPrime(v, 6);
         } else if (accept(Category.AND)) {
             AddressOfExpr a = parseAddressof();
-            return parseExpPrime(a, prc);
+            return parseExpPrime(a, 6);
         } else if (accept(Category.SIZEOF)) {
             SizeOfExpr s = parseSizeof();
             return parseExpPrime(s, prc);
@@ -529,7 +529,13 @@ public class Parser extends CompilerPass {
             prev = parseExpPrime(expr, prc);
         } else if (accept(Category.DOT)) {
             String name = parseFieldAccessPrime();
-            FieldAccessExpr expr = new FieldAccessExpr(prev, name);
+            Expr expr = new FieldAccessExpr(prev, name);
+
+            while (accept(Category.DOT)) {
+                name = parseFieldAccessPrime();
+                expr = new FieldAccessExpr(expr, name);
+            }
+
             prev = parseExpPrime(expr, prc);
         } else if (accept(
             Arrays.stream(
@@ -655,10 +661,10 @@ public class Parser extends CompilerPass {
             Category.SIZEOF
         ))
         {
-            args.add(parseExp(0));
+            args.add(parseExp(6));
             while (accept(Category.COMMA)) {
                 expect(Category.COMMA);
-                args.add(parseExp(0));
+                args.add(parseExp(6));
             }
         }
         
