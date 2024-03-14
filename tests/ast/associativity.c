@@ -1,9 +1,9 @@
-void foo();
+// void foo();
 void main() { 
     // a=b=c;
     // a=b.c=d;
     // 2 * (3 + 4) * 5;
-    // (2 * ( 3 + (((int) n[2]) + 2 * 3 + sizeof(struct n)) + 4));
+    (2 * ( 3 + (((int) n[2]) + 2 * 3 + sizeof(struct n)) + 4));
     // if ( <= ) {}
     // arr[1][2][3];
     // -(+8-(-9)*-6);
@@ -19,6 +19,21 @@ void main() {
     // n = c = b = ((int) (d.asd.fjk[91231][43]).afhb);
     // &*ptr;
     // a=c=b;
-    int a[1][2];
+    // int a[1][2];
+    // "asdfasd";
+    // '\n';
+    // "fasd";
+    // "\n";
+    // "asdfa'\t'fgads";
+    // print_s((int) "asdfa");
+    // c = give();
+    // return asdf;
+    // return;
+    // return 9123;
+    // return consumer();
+    // *a = b[2] + c * -d / e % f < g <= h > i >= j == k != l && m || n = o + p.q - (r + s);
+    // *a = b[2] + &f < f = 4;
+    // asdf = -d = f;
+    // print(8 + 8);
 }
 // void foo() { return; }

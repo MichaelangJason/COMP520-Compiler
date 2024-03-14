@@ -465,23 +465,23 @@ public class Parser extends CompilerPass {
         if (accept(Category.IDENTIFIER)) {
             Expr expr = parseExpIdent();
             return parseExpPrime(expr, prc);
-        } else if (accept(Category.MINUS, Category.PLUS)) {
+        } else if (prc <= 7 && accept(Category.MINUS, Category.PLUS)) {
             //
             Token optk = expect(Category.MINUS, Category.PLUS);
             Op op = optk.category == Category.MINUS ? Op.SUB : Op.ADD;
-            Expr expr = parseExp(6);
+            Expr expr = parseExp(prc);
             BinOp binop = new BinOp(new IntLiteral(0), op, expr);
 
             return parseExpPrime(binop, prc);
         } else if (accept(Category.LPAR)) {
             Expr expr = parseExpLpar(prc);
             return parseExpPrime(expr, prc);
-        } else if (accept(Category.ASTERIX)) {
+        } else if (prc <= 7 && accept(Category.ASTERIX)) {
             ValueAtExpr v = parseValueat();
-            return parseExpPrime(v, 6);
-        } else if (accept(Category.AND)) {
+            return parseExpPrime(v, prc);
+        } else if (prc <= 7 && accept(Category.AND)) {
             AddressOfExpr a = parseAddressof();
-            return parseExpPrime(a, 6);
+            return parseExpPrime(a, prc);
         } else if (accept(Category.SIZEOF)) {
             SizeOfExpr s = parseSizeof();
             return parseExpPrime(s, prc);
@@ -518,7 +518,7 @@ public class Parser extends CompilerPass {
             {Category.DIV, Category.ASTERIX, Category.REM},
         };
         
-        if (accept(Category.ASSIGN)) {
+        if (accept(Category.ASSIGN) && prc == 0) {
             // assignment
             expect(Category.ASSIGN);
             Expr expr = parseExp(0);
@@ -537,7 +537,7 @@ public class Parser extends CompilerPass {
             }
 
             prev = parseExpPrime(expr, prc);
-        } else if (accept(
+        } else if (prc <= 6 && accept(
             Arrays.stream(
                 Arrays.copyOfRange(cats, prc, cats.length))
                       .flatMap(Arrays::stream)
@@ -561,17 +561,18 @@ public class Parser extends CompilerPass {
                 case LOGAND -> Op.AND;
                 default -> throw new IllegalArgumentException();
             };
+            int nextPrc = prc;
             Category[] ops = switch(optk.category) {
-                case ASTERIX, DIV, REM -> { prc = 6; yield cats[5]; }
-                case PLUS, MINUS -> { prc = 5; yield cats[4]; }
-                case GT, LT, GE, LE -> { prc = 4; yield cats[3]; }
-                case NE, EQ -> { prc = 3; yield cats[2]; }
-                case LOGAND -> { prc = 2; yield cats[1]; }
-                case LOGOR -> { prc = 1; yield cats[0]; }
+                case ASTERIX, DIV, REM -> { nextPrc = 6; yield cats[5]; }
+                case PLUS, MINUS -> { nextPrc = 5; yield cats[4]; }
+                case GT, LT, GE, LE -> { nextPrc = 4; yield cats[3]; }
+                case NE, EQ -> { nextPrc = 3; yield cats[2]; }
+                case LOGAND -> { nextPrc = 2; yield cats[1]; }
+                case LOGOR -> { nextPrc = 1; yield cats[0]; }
                 default -> throw new Error();
             };
             
-            Expr rhs = parseExp(prc);
+            Expr rhs = parseExp(nextPrc);
             prev = new BinOp(prev, op, rhs);
 
             while (accept(ops)) {
@@ -592,18 +593,11 @@ public class Parser extends CompilerPass {
                     case LOGAND -> Op.AND;
                     default -> throw new IllegalArgumentException();
                 };
-                rhs = parseExp(prc);
+                rhs = parseExp(nextPrc);
                 prev = new BinOp(prev, op, rhs);
             }
 
-            // do {
-            //     rhs = parseExp(prc);
-            //     prev = new BinOp(prev, op, rhs);
-            // } while(accept(ops));
-
-            // Expr rhs = parseExp(prc);
-            // BinOp binop = new BinOp(prev, op, rhs);
-            prev = parseExpPrime(prev, 0);
+            prev = parseExpPrime(prev, prc);
         }
         
         return prev;
@@ -661,10 +655,10 @@ public class Parser extends CompilerPass {
             Category.SIZEOF
         ))
         {
-            args.add(parseExp(6));
+            args.add(parseExp(0));
             while (accept(Category.COMMA)) {
                 expect(Category.COMMA);
-                args.add(parseExp(6));
+                args.add(parseExp(0));
             }
         }
         
@@ -691,7 +685,7 @@ public class Parser extends CompilerPass {
      */
     private ValueAtExpr parseValueat() {
         expect(Category.ASTERIX);
-        return new ValueAtExpr(parseExp(0));
+        return new ValueAtExpr(parseExp(7));
     }
     
     /**
@@ -700,7 +694,7 @@ public class Parser extends CompilerPass {
      */
     private AddressOfExpr parseAddressof() {
         expect(Category.AND);
-        return new AddressOfExpr(parseExp(0));
+        return new AddressOfExpr(parseExp(7));
     }
 
     /**
@@ -711,7 +705,7 @@ public class Parser extends CompilerPass {
         expect(Category.LPAR);
         Type type = parseType();
         expect(Category.RPAR);
-        Expr expr = parseExp(0);
+        Expr expr = parseExp(7);
 
         return new TypecastExpr(type, expr);
     }
