@@ -20,5 +20,24 @@ public final class ArrayType implements Type {
         return subtype;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ArrayType)) return false;
+        if (this.nbElmts != ((ArrayType) obj).nbElmts) return false;
+        
+        Type curr = this;
+        Type arrobj = (ArrayType) obj; // cast to ArrayType
+
+        while(!curr.children().isEmpty() || arrobj.children().isEmpty()) {
+            if (curr.children().size() != arrobj.children().size()) return false;
+            // they can only have one child
+            curr = (Type) curr.children().get(0);
+            arrobj = (Type) arrobj.children().get(0);
+            // match child type
+            if (!curr.equals(arrobj)) return false;
+        }
+
+        return true;
+    }
     
 }

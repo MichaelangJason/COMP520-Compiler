@@ -2,11 +2,11 @@ package sem;
 
 import ast.FunDecl;
 
-public class FunSymbol extends Symbol {
+public class FunDeclSymbol extends Symbol {
     
     FunDecl fd;
     
-    public FunSymbol(FunDecl fd) {
+    public FunDeclSymbol(FunDecl fd) {
         super(fd.name);
         this.fd = fd;
     }

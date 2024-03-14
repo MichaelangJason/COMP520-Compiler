@@ -17,5 +17,23 @@ public final class PointerType implements Type {
         subtype.add(type);
         return subtype;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof PointerType)) return false;
+        Type curr = this;
+        Type ptrobj = (PointerType) obj; // cast to PointerType
+
+        while(!curr.children().isEmpty() || ptrobj.children().isEmpty()) {
+            if (curr.children().size() != ptrobj.children().size()) return false;
+            // they can only have one child
+            curr = (Type) curr.children().get(0);
+            ptrobj = (Type) ptrobj.children().get(0);
+            // match child type
+            if (!curr.equals(ptrobj)) return false;
+        }
+
+        return true;
+    }
     
 }

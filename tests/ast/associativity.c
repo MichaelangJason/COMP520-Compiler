@@ -1,11 +1,17 @@
 // void print_s(char* s);
 // void foo();
+void print_s(char* s) {}
+void print_i(int i) {}
+void print_c(char c) {}
+char read_c() {}
+int read_i() {}
+void* mcmalloc(int size) {}
 void main() { 
     // a=b=c;
     // char* c; char n;
-    c = "f\n\b\r";
+    // c = "f\n\b\r";
     // n = '\b';
-    c = (int) '\a';
+    // c = (int) '\a';
     // print_s(**s);
     // a=b.c=d;
     // 2 * (3 + 4) * 5;
