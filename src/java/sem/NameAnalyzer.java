@@ -239,7 +239,10 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						else if (vd.type instanceof ArrayType) {
 							Type curr = vd.type;
 							while (curr instanceof ArrayType ) curr = ((ArrayType) curr).type;
-							if (curr.equals(std.type)) error("[Name Analyzer]StructDecl recursively defined: "+std.name); return;
+							if (curr.equals(std.type)) {
+								error("[Name Analyzer]StructDecl recursively defined: "+std.name); 
+								return;
+							}
 						}
 						else visit(vd, prev);
 					}

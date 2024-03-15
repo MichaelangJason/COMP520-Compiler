@@ -230,7 +230,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 				Type rhsT = visit(assi.rhs);
 				if (!lhsT.equals(rhsT)) {
-					error("[Type Analyzer]Asignment Type Unmatched: "+lhsT+","+rhsT);
+					error("[Type Analyzer]Assignment Type Unmatched: "+lhsT+","+rhsT);
 					assi.type = BaseType.UNKNOWN;
 					yield assi.type;
 				}
@@ -272,7 +272,10 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 				Type returnType = rtn.children().isEmpty() ? BaseType.VOID : visit(rtn.expr);
 				if (returnType.equals(declReturnType)) yield BaseType.NONE;
-				else yield BaseType.UNKNOWN;
+				else {
+					error("[Type Analyzer] Return type unmatched: "+declReturnType+","+returnType);
+					yield BaseType.UNKNOWN;
+				}
 
 			}
 			

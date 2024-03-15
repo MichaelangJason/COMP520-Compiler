@@ -3,5 +3,5 @@ struct st {
 };
 int main() {
     struct st n;
-    return n.n;
+    return;
 }
