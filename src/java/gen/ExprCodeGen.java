@@ -1,8 +1,11 @@
 package gen;
 
-import ast.Expr;
+import ast.*;
 import gen.asm.AssemblyProgram;
 import gen.asm.Register;
+import gen.asm.Register.Arch;
+import gen.asm.AssemblyProgram.Section;
+import gen.asm.OpCode;
 
 
 /**
@@ -16,6 +19,32 @@ public class ExprCodeGen extends CodeGen {
 
     public Register visit(Expr e) {
         // TODO: to complete
-        return null;
+        Section currSec = asmProg.getCurrentSection();
+        return switch (e) {
+            case FunCallExpr fc -> {
+                // usage of fp is optional here, possible optimization for instruction executed
+
+                // push arguments on stack
+                for (Expr arg: fc.args) {
+                    Register rg = visit(arg);
+                    currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
+                    currSec.emit(OpCode.SW, rg, Arch.sp, 0); // push arguments on the stack
+                }
+
+                // reserve for any potential return value
+                currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4);
+                
+                // load return value to $t0
+                currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0);
+                currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4);
+
+                // reset sp
+                for (Expr _: fc.args)
+                    currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
+
+                yield Arch.t0;
+            }
+            default -> null;
+        };
     }
 }
