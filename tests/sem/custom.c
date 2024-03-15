@@ -15,5 +15,7 @@ struct st {
 };
 // int test;
 char** test(int asdf, struct st *** as);
-char** test(int eqw, struct st *** qw) {}
+char** test(int eqw, struct st *** qw) {
+    
+}
 

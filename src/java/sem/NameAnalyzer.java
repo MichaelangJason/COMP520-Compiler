@@ -1,7 +1,6 @@
 package sem;
 
 import java.util.List;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import ast.*;
@@ -112,6 +111,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						FunDecl funDeclFd = ((FunDeclSymbol) fd).fd;
 						Type givenType = fp.type;
 						Type declaredType = funDeclFd.type;
+						
 						if (givenType.equals(declaredType) && fp.params.size() == funDeclFd.params.size()) {
 							Scope oldScope = scope;
 							scope = new Scope(oldScope);
