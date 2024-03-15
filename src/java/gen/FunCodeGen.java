@@ -25,9 +25,9 @@ public class FunCodeGen extends CodeGen {
          * Create an unique label for the function
          * after the sem analyzer, there should be no 2 function with same name
          */
-        Label fnName = Label.create(fd.name);
+        Label fnName = Label.get(fd.name);
         currSec.emit(fnName);
-        
+
         // 1) emit the prolog
         currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
         currSec.emit(OpCode.SW, Arch.fp, Arch.sp, 0); // push frame pointer on the stack
