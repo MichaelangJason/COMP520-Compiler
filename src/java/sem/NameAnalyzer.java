@@ -1,12 +1,13 @@
 package sem;
 
 import java.util.List;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import ast.*;
 
 public class NameAnalyzer extends BaseSemanticAnalyzer {
-	Scope scope = new Scope();
+	Scope scope;
 	public void visit(ASTNode node) {
 		switch(node) {
 			case null -> {
@@ -14,6 +15,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case Program p -> {
+				scope = new Scope();
 				// dummy definitions of builtin functions
 				List<VarDecl> args1 = new ArrayList<>();
 				args1.add(new VarDecl(new PointerType(BaseType.CHAR), "s"));
@@ -93,13 +95,38 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				else {
 					// search and to match existing FunDeclSymbol
 					Symbol fd = scope.lookupCurrent(fp.name);
+					
+					if (fd == null) { 
+						Scope oldScope = scope;
+						scope = new Scope(oldScope);
+						for (ASTNode n: fp.params) visit(n);
+						scope = oldScope;
+						scope.put(new FunProtoSymbol(fp)); 
+						break;
+					}
+
 					// if existing and is VarSymbol, error
-					if (fd instanceof VarSymbol) error("[Name Analyzer]FunProto conflicts: " + fp.name);
+					if (fd instanceof VarSymbol) error("[Name Analyzer]FunProto conflict: " + fp.name);
 					else {
 						// here implies that fd is a FunDeclSymbol, so try match return type
+						FunDecl funDeclFd = ((FunDeclSymbol) fd).fd;
 						Type givenType = fp.type;
-						Type declaredType = ((FunDeclSymbol) fd).fd.type;
-						if (givenType.equals(declaredType)) scope.put(new FunProtoSymbol(fp));
+						Type declaredType = funDeclFd.type;
+						if (givenType.equals(declaredType) && fp.params.size() == funDeclFd.params.size()) {
+							Scope oldScope = scope;
+							scope = new Scope(oldScope);
+							for (ASTNode n: fp.params) visit(n);
+							scope = oldScope;
+
+							for (int i = 0; i < fp.params.size(); i++) {
+								if (!fp.params.get(i).type.equals(funDeclFd.params.get(i).type)) {
+									error("[Name Analyzer]FunProto FunDecl Params Unmatched");
+									return;
+								}
+							}
+
+							scope.put(new FunProtoSymbol(fp));
+						}
 						else error("[Name Analyzer]FunProto Type Unmatched: "+fp.name);
 					}
 				}
@@ -107,21 +134,47 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			// FunDecl should appears at the top scope at this phase
 			case FunDecl fd -> {
-				Symbol s = scope.lookup(fd.name);
+				Symbol s = scope.lookupCurrent(fd.name);
 				
 				// found a declaration
-				if (s instanceof FunDeclSymbol) error("[Name Analyzer]FunDecl exists: " + fd.name);
+				if (s instanceof FunDeclSymbol || s instanceof VarSymbol) error("[Name Analyzer]FunDecl exists: " + fd.name);
 				else {
 					// if s is another type of symbol, then check for existing prototype
 					Symbol proto = scope.lookupCurrent("proto "+fd.name);
 					
 					// either proto_[fd.name] is null or other symbol type, put it in
-					if (!(proto instanceof FunProtoSymbol)) scope.put(new FunDeclSymbol(fd));
+					if (proto instanceof VarSymbol) {
+						error("[Name Analyzer]FunDecl conflict"); break;
+					}
+					if (!(proto instanceof FunProtoSymbol )) {
+						// check params scope
+						Scope oldScope = scope;
+						scope = new Scope(oldScope);
+						for (ASTNode n: fd.params) visit(n);
+						scope = oldScope;
+						scope.put(new FunDeclSymbol(fd));
+					}
 					// else check if the type match es
 					else {
+						FunProto fpProto = ((FunProtoSymbol) proto).fp;
+
 						Type givenType = fd.type;
-						Type declaredType = ((FunProtoSymbol) s).fp.type;
-						if (givenType.equals(declaredType)) scope.put(new FunDeclSymbol(fd)); // needs override equals for pointerType and arrayType
+						Type declaredType = fpProto.type;
+						if (givenType.equals(declaredType) && fd.params.size() == fpProto.params.size()) {
+							Scope oldScope = scope;
+							scope = new Scope(oldScope);
+							for (ASTNode n: fd.params) visit(n);
+							scope = oldScope;
+
+							for (int i = 0; i < fd.params.size(); i++) {
+								if (!fd.params.get(i).type.equals(fpProto.params.get(i).type)) {
+									error("[Name Analyzer]FunDecl FunProto Params Unmatched");
+									return;
+								}
+							}
+
+							scope.put(new FunDeclSymbol(fd));
+						} // needs override equals for pointerType and arrayType
 						else error("[Name Analyzer]FunDecl/FunProto Type Unmatched: "+fd.name);
 					}
 				}
@@ -154,28 +207,49 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			case FunCallExpr f -> {
 				Symbol s = scope.lookup(f.name);
 				// search for an existing FunDeclSymbol
-				if (!(s instanceof FunDeclSymbol)) error("[Name Analyzer]Function Undefined: "+f.name);
+				if (!(s instanceof FunDeclSymbol)) { error("[Name Analyzer]Function Undefined: "+f.name); break; }
 				f.fd = ((FunDeclSymbol) s).fd;
 			}
 
 			case VarExpr v -> {
 				Symbol s = scope.lookup(v.name);
 				// search for an existing VarSymbol
-				if (!(s instanceof VarSymbol)) error("[Name Analyzer]Variable Undeclared: "+v.name);
+				if (!(s instanceof VarSymbol)) { error("[Name Analyzer]Variable Undeclared: "+v.name); break; }
 				v.vd = ((VarSymbol) s).vd;
 			}
 
 			case StructTypeDecl std -> {
-				Symbol s = scope.lookupCurrent(std.name);
-				if (s instanceof StructDeclSymbol) error("[Name Analyzer]StructTypeDecl already exists: "+ std.name);
-				else scope.put(new StructDeclSymbol(std));
+				Symbol s = scope.lookupCurrent("struct "+std.name);
+				if (s instanceof StructDeclSymbol) { error("[Name Analyzer]StructTypeDecl already exists: "+ std.name); break; }
+				else {
+					// check params
+					Scope oldScope = scope;
+					scope = new Scope(oldScope);
+					scope.put(new StructDeclSymbol(std));
+
+					for (VarDecl vd: std.vardecls) {
+						if (vd.type.equals(std.type)) {
+							error("[Name Analyzer]StructDecl recursively defined: "+std.name); return;
+						}
+						else if (vd.type instanceof ArrayType) {
+							Type curr = vd.type;
+							while (curr instanceof ArrayType ) curr = ((ArrayType) curr).type;
+							if (curr.equals(std.type)) error("[Name Analyzer]StructDecl recursively defined: "+std.name); return;
+						}
+						else visit(vd);
+					}
+
+					scope = oldScope;
+					scope.put(new StructDeclSymbol(std));
+
+				}
 
 			}
 
 			case StructType t -> {
 				// only check for structType declaration
 				Symbol s = scope.lookup("struct "+t.name);
-				if (s == null) error("[Name Analyzer]StructType Undefined: "+t.name);
+				if (s == null) { error("[Name Analyzer]StructType Undefined: "+t.name); break; }
 				t.std = ((StructDeclSymbol) s).std;
 			}
 

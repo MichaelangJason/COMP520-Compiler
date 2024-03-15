@@ -28,16 +28,9 @@ public final class ArrayType implements Type {
         Type curr = this;
         Type arrobj = (ArrayType) obj; // cast to ArrayType
 
-        while(!curr.children().isEmpty() || arrobj.children().isEmpty()) {
-            if (curr.children().size() != arrobj.children().size()) return false;
-            // they can only have one child
-            curr = (Type) curr.children().get(0);
-            arrobj = (Type) arrobj.children().get(0);
-            // match child type
-            if (!curr.equals(arrobj)) return false;
-        }
-
-        return true;
+        if (curr.children().size() != arrobj.children().size()) return false;
+        if (!curr.children().isEmpty()) return curr.children().get(0).equals(arrobj.children().get(0));
+        else return true;
     }
     
 }

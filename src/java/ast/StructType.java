@@ -19,6 +19,6 @@ public final class StructType implements Type {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof StructType && ((StructType) obj).name == this.name;
+        return obj instanceof StructType && ((StructType) obj).name.equals(this.name);
     }
 }

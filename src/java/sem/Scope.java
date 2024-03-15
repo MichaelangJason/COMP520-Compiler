@@ -1,10 +1,11 @@
 package sem;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class Scope {
 	private Scope outer;
-	private Map<String, Symbol> symbolTable;
+	private Map<String, Symbol> symbolTable = new HashMap<>();
 	
 	public Scope(Scope outer) { 
 		this.outer = outer; 
@@ -15,7 +16,7 @@ public class Scope {
 	// find in both local and outer scope
 	public Symbol lookup(String name) {
 		Symbol curr = symbolTable.get(name);
-		return curr == null ? null : outer.lookup(name);
+		return curr != null ? curr : outer != null ? outer.lookup(name) : null; 
 	}
 	
 	public Symbol lookupCurrent(String name) {

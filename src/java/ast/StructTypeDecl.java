@@ -8,7 +8,7 @@ public final class StructTypeDecl extends Decl {
     
     public StructTypeDecl(StructType type, List<VarDecl> varDecls) {
         this.type = type;
-        // this.name = type.name;
+        this.name = type.name;
         this.vardecls = varDecls;
     }
 
