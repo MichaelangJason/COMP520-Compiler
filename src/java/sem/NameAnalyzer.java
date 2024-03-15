@@ -196,6 +196,10 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					Symbol fd = scope.lookup(vd.name);
 					if (fp != null || fd instanceof FunDeclSymbol) error("[Name Analyzer]VarDecl FunExisted: " + vd.name);
 					else {
+						if (vd.type.equals(BaseType.VOID)) {
+							error("[Name Analyzer]Variable cannot declared in type Void");
+							break;
+						}
 						// also needs to check if type exists!
 						visit(vd.type);
 						// no need for check visit status since it increments error

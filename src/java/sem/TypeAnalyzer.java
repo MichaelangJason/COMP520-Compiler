@@ -1,5 +1,7 @@
 package sem;
 
+import java.util.List;
+
 import ast.*;
 
 public class TypeAnalyzer extends BaseSemanticAnalyzer {
@@ -41,9 +43,39 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				yield BaseType.UNKNOWN; // to change
 			}
 
+			case FunCallExpr fc -> {
+				if (fc.fd == null) {
+					error("[Type Analyzer] fd not exists");
+					yield BaseType.UNKNOWN;
+				}
+
+				List<VarDecl> declParams = fc.fd.params;
+				List<Expr> args = fc.args;
+				if (args.size() != declParams.size()) error("[Type Analyzer] number of args unmatched: "+fc.name);
+				else {
+					for (int i = 0; i < args.size(); i++) {
+						Type argT = visit(args.get(i));
+						Type declT = visit(declParams.get(i));
+						if (!argT.equals(declT)) error("[Type Analyzer] args type unmatched"+fc.name);
+					}
+				}
+
+				yield fc.fd.type;
+			}
+
 			case Type t -> {
 				yield t;
 			}
+
+			case BinOp bo -> {
+				Type lhsT = visit(bo.lhs);
+				Type rhsT = visit(bo.rhs);
+				yield BaseType.UNKNOWN;
+			}
+
+			// case IntLiteral intlit -> {
+				
+			// }
 
 			// to complete ...
 			default -> { yield null; }
