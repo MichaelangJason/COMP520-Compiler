@@ -5,6 +5,7 @@ import gen.asm.AssemblyProgram;
 import gen.asm.Label;
 import gen.asm.Register;
 import gen.asm.Register.Arch;
+import gen.asm.Register.Virtual;
 import gen.asm.AssemblyProgram.Section;
 import gen.asm.OpCode;
 
@@ -48,6 +49,13 @@ public class ExprCodeGen extends CodeGen {
 
                 yield Arch.t0;
             }
+
+            case IntLiteral intlit -> {
+                Register resReg = Virtual.create();
+                currSec.emit(OpCode.LI, resReg, intlit.val);
+                yield resReg;
+            }
+            
             default -> null;
         };
     }
