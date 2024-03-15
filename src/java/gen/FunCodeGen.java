@@ -37,9 +37,19 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
         currSec.emit(OpCode.SW, Arch.ra, Arch.sp, 0); // push return address on the stack
 
+        
         // 2) emit the body of the function
-        StmtCodeGen scd = new StmtCodeGen(asmProg);
-        scd.visit(fd.block);
+        // supports builtin functions
+        switch(fd.name) {
+            case "print_i": {
+                // get the argument
+                
+            }
+            default: {
+                StmtCodeGen scd = new StmtCodeGen(asmProg);
+                scd.visit(fd.block);
+            }
+        }
 
         // 3) emit the epilog
         currSec.emit(OpCode.LW, Arch.ra, Arch.sp, 0); // restore return address

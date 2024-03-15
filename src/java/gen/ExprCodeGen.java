@@ -44,7 +44,7 @@ public class ExprCodeGen extends CodeGen {
                 currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4);
 
                 // reset sp
-                for (Expr _: fc.args)
+                for (Expr args: fc.args)
                     currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
 
                 yield Arch.t0;
@@ -55,7 +55,7 @@ public class ExprCodeGen extends CodeGen {
                 currSec.emit(OpCode.LI, resReg, intlit.val);
                 yield resReg;
             }
-            
+
             default -> null;
         };
     }
