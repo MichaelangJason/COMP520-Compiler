@@ -1,7 +1,10 @@
 package gen;
 
 import ast.FunDecl;
-import gen.asm.AssemblyProgram;
+import ast.*;
+import gen.asm.*;
+import gen.asm.AssemblyProgram.Section;
+import gen.asm.Register.Arch;
 
 /**
  * A visitor that produces code for a single function declaration
@@ -16,16 +19,34 @@ public class FunCodeGen extends CodeGen {
     void visit(FunDecl fd) {
         // Each function should be produced in its own section.
         // This is necessary for the register allocator.
-        asmProg.newSection(AssemblyProgram.Section.Type.TEXT);
+        Section currSec = asmProg.newSection(AssemblyProgram.Section.Type.TEXT);
 
-        // TODO: to complete
+        /*
+         * Create an unique label for the function
+         * after the sem analyzer, there should be no 2 function with same name
+         */
+        Label fnName = Label.create(fd.name);
+        currSec.emit(fnName);
+        
         // 1) emit the prolog
+        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
+        currSec.emit(OpCode.SW, Arch.fp, Arch.sp, 0); // push frame pointer on the stack
+
+        currSec.emit(OpCode.MOVZ, Arch.fp, Arch.sp, Arch.zero); // initialize frame pointer
+
+        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
+        currSec.emit(OpCode.SW, Arch.ra, Arch.sp, 0); // push return address on the stack
 
         // 2) emit the body of the function
         StmtCodeGen scd = new StmtCodeGen(asmProg);
         scd.visit(fd.block);
 
         // 3) emit the epilog
+        currSec.emit(OpCode.LW, Arch.ra, Arch.sp, 0); // restore return address
+        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
+
+        currSec.emit(OpCode.LW, Arch.fp, Arch.sp, 0); // restore frame pointer
+        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
     }
 
 
