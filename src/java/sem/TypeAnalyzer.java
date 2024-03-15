@@ -41,7 +41,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case VarExpr v -> {
 				// to complete
-				yield v.vd.type; // to change
+				yield v.vd != null ? v.vd.type : BaseType.UNKNOWN; // to change
 			}
 
 			case StructTypeDecl std -> {
@@ -151,6 +151,11 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 					if (!(fieldT instanceof StructType)) {
 						error("[Type Analyzer] FieldAccess not StructType: "+fieldT);
+						yield BaseType.UNKNOWN;
+					}
+
+					if (((StructType) fieldT).std == null) {
+						error("[Type Analyzer] FieldAccess StructType Undefined");
 						yield BaseType.UNKNOWN;
 					}
 
@@ -265,7 +270,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 						? BaseType.NONE : BaseType.UNKNOWN;
 				}
 
-				Type returnType = visit(rtn.expr);
+				Type returnType = rtn.children().isEmpty() ? BaseType.VOID : visit(rtn.expr);
 				if (returnType.equals(declReturnType)) yield BaseType.NONE;
 				else yield BaseType.UNKNOWN;
 
