@@ -7,7 +7,7 @@ import ast.*;
 
 public class NameAnalyzer extends BaseSemanticAnalyzer {
 	Scope scope;
-	public void visit(ASTNode node) {
+	public void visit(ASTNode node, ASTNode prev) {
 		switch(node) {
 			case null -> {
 				throw new IllegalStateException("Unexpected null value");
@@ -58,7 +58,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				);
 
 				List<VarDecl> args4 = new ArrayList<>();
-				args3.add(new VarDecl(BaseType.INT, "size"));
+				args4.add(new VarDecl(BaseType.INT, "size"));
 				FunDecl decl_mcmalloc = new FunDecl(
 					new PointerType(BaseType.VOID),
 					"mcmalloc", 
@@ -73,14 +73,14 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				scope.put(new FunDeclSymbol(decl_read_i));
 				scope.put(new FunDeclSymbol(decl_mcmalloc));
 
-				for (Decl d: p.decls) visit(d);
+				for (Decl d: p.decls) visit(d, p);
 			}
 
 			case Block b -> {
 				Scope oldScope = scope;
 				scope = new Scope(oldScope);
 
-				for (ASTNode n: b.children()) visit(n);
+				for (ASTNode n: b.children()) visit(n, prev);
 
 				scope = oldScope; // restore oldScope
 			}
@@ -98,7 +98,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					if (fd == null) { 
 						Scope oldScope = scope;
 						scope = new Scope(oldScope);
-						for (ASTNode n: fp.params) visit(n);
+						for (ASTNode n: fp.params) visit(n, prev);
 						scope = oldScope;
 						scope.put(new FunProtoSymbol(fp)); 
 						break;
@@ -115,7 +115,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						if (givenType.equals(declaredType) && fp.params.size() == funDeclFd.params.size()) {
 							Scope oldScope = scope;
 							scope = new Scope(oldScope);
-							for (ASTNode n: fp.params) visit(n);
+							for (ASTNode n: fp.params) visit(n, fp);
 							scope = oldScope;
 
 							for (int i = 0; i < fp.params.size(); i++) {
@@ -150,7 +150,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						// check params scope
 						Scope oldScope = scope;
 						scope = new Scope(oldScope);
-						for (ASTNode n: fd.params) visit(n);
+						for (ASTNode n: fd.params) visit(n, fd);
 						scope = oldScope;
 						scope.put(new FunDeclSymbol(fd));
 					}
@@ -163,7 +163,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						if (givenType.equals(declaredType) && fd.params.size() == fpProto.params.size()) {
 							Scope oldScope = scope;
 							scope = new Scope(oldScope);
-							for (ASTNode n: fd.params) visit(n);
+							for (ASTNode n: fd.params) visit(n, fd);
 							scope = oldScope;
 
 							for (int i = 0; i < fd.params.size(); i++) {
@@ -181,7 +181,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 				Scope oldScope = scope;
 				scope = new Scope(oldScope);
-				for (ASTNode n: fd.children()) visit(n); // this will add VarDecl for inner scope and then use it for child block
+				for (ASTNode n: fd.children()) visit(n, fd); // this will add VarDecl for inner scope and then use it for child block
 				scope = oldScope; // restore oldScope
 				
 			}
@@ -201,7 +201,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 							break;
 						}
 						// also needs to check if type exists!
-						visit(vd.type);
+						visit(vd.type, prev);
 						// no need for check visit status since it increments error
 						scope.put(new VarSymbol(vd));
 					}
@@ -213,6 +213,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				// search for an existing FunDeclSymbol
 				if (!(s instanceof FunDeclSymbol)) { error("[Name Analyzer]Function Undefined: "+f.name); break; }
 				f.fd = ((FunDeclSymbol) s).fd;
+				for (Expr arg: f.args) visit(arg, prev);
 			}
 
 			case VarExpr v -> {
@@ -240,7 +241,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 							while (curr instanceof ArrayType ) curr = ((ArrayType) curr).type;
 							if (curr.equals(std.type)) error("[Name Analyzer]StructDecl recursively defined: "+std.name); return;
 						}
-						else visit(vd);
+						else visit(vd, prev);
 					}
 
 					scope = oldScope;
@@ -257,9 +258,13 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				t.std = ((StructDeclSymbol) s).std;
 			}
 
+			case Return rtn -> {
+				rtn.fd = (FunDecl) prev;
+				if (rtn.expr != null) visit(rtn.expr, rtn);
+			}
 			// for other nodes, visit their children, should be in correct order
 			default -> {
-				for (ASTNode n: node.children()) visit(n);
+				for (ASTNode n: node.children()) visit(n, prev);
 			}
 		};
 

@@ -1,26 +1,8 @@
-// int a;
-// // int a;
-// int main();
-
-// int main() {
-
-//     /* code */
-//     return 0;
-// }
-
-struct st {
-    char* f;
-    struct st * s;
-    // struct st s;
-};
-// int test;
-int i;
-char** test(int asdf, struct st *** as);
-char** test(int eqw, struct st *** qw) {
-    // int i;
-    int j;
-    void c;
-    i = 0;
+int foo(int a[3]) {
+   return a[1]; 
 }
-
-
+int bar() {
+    int b[6];
+    int c[3];
+    return foo(c); // foo expects an array of size 3, not 6
+}
