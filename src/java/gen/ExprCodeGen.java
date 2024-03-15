@@ -2,6 +2,7 @@ package gen;
 
 import ast.*;
 import gen.asm.AssemblyProgram;
+import gen.asm.Label;
 import gen.asm.Register;
 import gen.asm.Register.Arch;
 import gen.asm.AssemblyProgram.Section;
@@ -33,6 +34,9 @@ public class ExprCodeGen extends CodeGen {
 
                 // reserve for any potential return value
                 currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4);
+
+                // jump to corresponding procedure
+                currSec.emit(OpCode.JAL, Label.get(fc.name));
                 
                 // load return value to $t0
                 currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0);
