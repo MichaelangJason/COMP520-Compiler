@@ -43,7 +43,12 @@ public class FunCodeGen extends CodeGen {
         switch(fd.name) {
             case "print_i": {
                 // get the argument
-                
+                currSec.emit(OpCode.LW, Arch.a0, Arch.fp,8);
+                // load syscall
+                currSec.emit(OpCode.LI, Arch.v0, 1);
+                // perform syscall
+                currSec.emit(OpCode.SYSCALL);
+                break;
             }
             default: {
                 StmtCodeGen scd = new StmtCodeGen(asmProg);

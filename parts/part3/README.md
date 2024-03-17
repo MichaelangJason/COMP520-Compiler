@@ -30,7 +30,7 @@ You can also use this [online simulator](https://ecse324.ece.mcgill.ca/simulator
 **Important**:
 The marking system will run the Mars simulator from the command line which may change slightly the behaviour of your program (especially when it comes to handling input).
 You should always make sure that all your tests execute correctly with the Mars simulator run from the command line with the following command:
-`java -jar MARS_JAR_FILE sm nc me ASM_FILE`
+`java -jar tests/gen/Mars4_5.jar sm nc me tests/gen/custom.asm`
 
 
 ## 1. Generating a simple program and main function
