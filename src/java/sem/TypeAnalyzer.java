@@ -265,11 +265,6 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			case Return rtn -> {
 				Type declReturnType = rtn.fd.type;
 
-				if (declReturnType == BaseType.VOID) {
-					yield rtn.children().isEmpty()
-						? BaseType.NONE : BaseType.UNKNOWN;
-				}
-
 				Type returnType = rtn.children().isEmpty() ? BaseType.VOID : visit(rtn.expr);
 				if (returnType.equals(declReturnType)) yield BaseType.NONE;
 				else {
