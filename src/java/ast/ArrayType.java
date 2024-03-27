@@ -32,5 +32,10 @@ public final class ArrayType implements Type {
         if (!curr.children().isEmpty()) return curr.children().get(0).equals(arrobj.children().get(0));
         else return true;
     }
+
+    @Override
+    public int getSize() {
+        return nbElmts * type.getSize();
+    }
     
 }

@@ -9,4 +9,13 @@ public enum BaseType implements Type {
     public List<ASTNode> children() {
         return new ArrayList<>();
     }
+
+    @Override
+    public int getSize() {
+        return switch(this) {
+            case INT -> 4;
+            case CHAR -> 1;
+            default -> 0;
+        };
+    }
 }

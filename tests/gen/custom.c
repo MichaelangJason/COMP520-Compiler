@@ -2,5 +2,5 @@
 void here() {}
 
 void main() {
-    print_i(1);
+    print_i(8);
 }
