@@ -3,6 +3,8 @@ package ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import gen.AsmHelper;
+
 public final class StructType implements Type {
 
     public final String name;
@@ -24,6 +26,7 @@ public final class StructType implements Type {
 
     @Override
     public int getSize() {
-        return std.vardecls.stream().mapToInt(vd -> vd.type.getSize()).sum();
+        // StructType must be padded
+        return std.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
     }
 }

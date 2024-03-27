@@ -30,18 +30,38 @@ public class MemAllocCodeGen extends CodeGen {
     void visit(ASTNode n) {
         
         switch (n) {
-            case Program p -> {
-                // only allocate 
-                for (Decl d: p.decls) {
-                    if (!(d instanceof VarDecl)) continue;
-                    // emit label
-                    dataSection.emit(Label.get(d.name));
+            case VarDecl vd -> {
+                if (this.global) {
+                    int size = vd.getSize();
+                    // emit label, unique in global scope
+                    dataSection.emit(Label.get(vd.name));
                     // emit declaration
-                    dataSection.emit(new Directive("space " + d.type.getSize()));
+                    dataSection.emit(new Directive("space " + vd.getSize()));
+                    // emit padding for any unaligned space
+                    if (size % 4 != 0) dataSection.emit(new Directive("align " + (4 - size % 4)));
+                } else {
+                    this.fpOffset -= vd.getSize();
+                    vd.fpOffset = this.fpOffset;
                 }
             }
 
-            
+            case FunDecl fd -> {
+                // fp and ra each takes 4 bytes
+                // assume sp is already at fp right now
+                
+                // args passed in (a, b, c, d), so read in reversed order
+                int offset = 4 + AsmHelper.paddedSize(fd.returnSize()); // points to the start of return size
+                for (VarDecl vd: fd.params.reversed()) {
+                    // fpOffset set to the start of the argument
+                    offset += AsmHelper.paddedSize(vd.getSize());
+                    vd.fpOffset = offset;    
+                }
+                this.fpOffset = -4; // points to return address
+
+                this.global = false;
+                visit(fd.block);
+                this.global = true;
+            }
         
             default -> {
                 for (ASTNode c: n.children()) visit(c);

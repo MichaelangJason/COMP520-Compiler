@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class VarDecl extends Decl {
+    public int fpOffset;
 
     public VarDecl(Type type, String name) {
 	    this.type = type;
@@ -16,4 +17,7 @@ public final class VarDecl extends Decl {
         return children;
     }
 
+    public int getSize() {
+        return this.type.getSize();
+    }
 }
