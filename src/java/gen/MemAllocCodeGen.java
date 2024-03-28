@@ -1,5 +1,7 @@
 package gen;
 
+import java.util.HashMap;
+
 import ast.*;
 import gen.asm.AssemblyProgram;
 import gen.asm.Directive;
@@ -12,6 +14,8 @@ import gen.asm.AssemblyProgram.Section.Type;
 public class MemAllocCodeGen extends CodeGen {
     // always assume dataSection 
     Section dataSection = asmProg.getCurrentSection(); 
+    // Char and String Literal HashMap
+    public static final HashMap<String, Label> chrTable = new HashMap<>();
 
     public MemAllocCodeGen(AssemblyProgram asmProg) {
         assert asmProg != null && asmProg.getCurrentSection().type == Type.DATA;
@@ -33,8 +37,9 @@ public class MemAllocCodeGen extends CodeGen {
             case VarDecl vd -> {
                 if (this.global) {
                     int size = vd.getSize();
+                    vd.label = Label.get(vd.name);
                     // emit label, unique in global scope
-                    dataSection.emit(Label.get(vd.name));
+                    dataSection.emit(vd.label);
                     // emit declaration
                     dataSection.emit(new Directive("space " + vd.getSize()));
                     // emit padding for any unaligned space
@@ -62,7 +67,32 @@ public class MemAllocCodeGen extends CodeGen {
                 visit(fd.block);
                 this.global = true;
             }
-        
+
+            case StrLiteral strlit -> {
+                // break if already existed
+                if (chrTable.containsKey(strlit.val)) break;
+                // static allocation
+                Label label = Label.create(strlit.val);
+                chrTable.put(strlit.val, label);
+
+                dataSection.emit(label);
+                dataSection.emit(new Directive("asciiz \"%s\"".formatted(strlit.val)));
+                if (strlit.val.length() % 4 != 0) dataSection.emit(new Directive(".align "+ AsmHelper.getPadding(strlit.val.length())));
+            }
+
+            case ChrLiteral chrlit -> {
+                String val = Character.toString(chrlit.val);
+                // break if already existed
+                if (chrTable.containsKey(val)) break;
+                // static allocation
+                Label label = Label.create(val);
+                chrTable.put(val, label);
+
+                dataSection.emit(label);
+                dataSection.emit(new Directive("byte '%s'".formatted(val)));
+                dataSection.emit(new Directive("align 3"));
+            }
+
             default -> {
                 for (ASTNode c: n.children()) visit(c);
             }

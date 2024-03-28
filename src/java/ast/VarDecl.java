@@ -3,8 +3,11 @@ package ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import gen.asm.Label;
+
 public final class VarDecl extends Decl {
-    public int fpOffset;
+    public int fpOffset = -1;
+    public Label label;
 
     public VarDecl(Type type, String name) {
 	    this.type = type;

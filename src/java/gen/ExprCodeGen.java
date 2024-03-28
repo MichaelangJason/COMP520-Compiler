@@ -51,8 +51,10 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case VarExpr vexp -> {
-                //TODO
-                yield null;
+                Register resReg = Virtual.create();
+                currSec.emit(OpCode.ADDI, resReg, Arch.fp, vexp.vd.fpOffset);
+
+                yield resReg;
             }
             
             case IntLiteral intlit -> {
@@ -62,13 +64,26 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case StrLiteral strlit -> {
-                // TODO
-                yield null;
+                if (!MemAllocCodeGen.chrTable.containsKey(strlit.val)) yield null;
+                // retrieve from MemAlloc hashmap
+                Label label = MemAllocCodeGen.chrTable.get(strlit.val);
+                // load to resReg
+                Register resReg = Virtual.create();
+                currSec.emit(OpCode.LA, resReg, label);
+                
+                yield resReg;
             }
 
             case ChrLiteral chrlit -> {
-                // TODO
-                yield null;
+                String val = Character.toString(chrlit.val);
+                if (!MemAllocCodeGen.chrTable.containsKey(val)) yield null;
+                // retrieve from MemAlloc hashmap
+                Label label = MemAllocCodeGen.chrTable.get(val);
+                // load to resReg
+                Register resReg = Virtual.create();
+                currSec.emit(OpCode.LA, resReg, label);
+                
+                yield resReg;
             }
 
             case BinOp bo -> {
@@ -194,8 +209,11 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case Assign asiexp -> {
-                //TODO
-                yield null;
+                Register addrReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
+                Register valReg = visit(asiexp.rhs);
+                currSec.emit(OpCode.SW, valReg, addrReg, 0);
+
+                yield valReg;
             }
 
             default -> null;
