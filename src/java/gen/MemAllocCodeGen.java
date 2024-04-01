@@ -13,13 +13,14 @@ import gen.asm.AssemblyProgram.Section.Type;
 
 public class MemAllocCodeGen extends CodeGen {
     // always assume dataSection 
-    Section dataSection = asmProg.getCurrentSection(); 
+    Section dataSection;
     // Char and String Literal HashMap
     public static final HashMap<String, Label> chrTable = new HashMap<>();
 
     public MemAllocCodeGen(AssemblyProgram asmProg) {
         assert asmProg != null && asmProg.getCurrentSection().type == Type.DATA;
         this.asmProg = asmProg;
+        dataSection = asmProg.getCurrentSection();
     }
 
     boolean global = true;

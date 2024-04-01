@@ -1,8 +1,6 @@
 package gen;
 
-import java.sql.Struct;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import ast.*;
 import gen.asm.AssemblyProgram;
@@ -30,6 +28,7 @@ public class ExprCodeGen extends CodeGen {
                 Type returnType = fc.fd.type;
                 List<VarDecl> params = fc.fd.params;
 
+                // push arguments onto stack if there is
                 if (!params.isEmpty()) {
                     ExprCodeGen gen = new ExprCodeGen(asmProg);
                     // reversely push arguments to sp
@@ -66,25 +65,26 @@ public class ExprCodeGen extends CodeGen {
 
                 // jump to corresponding procedure
                 currSec.emit(OpCode.JAL, Label.get(fc.name));
-
-                // depends on the returnType, either store value or address
-                switch(returnType) {
-                    case BaseType.INT: currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0); break;
-                    case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.t0, Arch.sp, 0); break;
-                    default: currSec.emit(OpCode.ADDIU, Arch.t0, Arch.sp, 0);
-                }
                 
-                // reset sp object to return value
                 if (returnType != BaseType.VOID) {
+                    // depends on the returnType, either store value or address
+                    switch(returnType) {
+                        case BaseType.INT: currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0); break;
+                        case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.t0, Arch.sp, 0); break;
+                        default: currSec.emit(OpCode.ADDIU, Arch.t0, Arch.sp, 0);
+                    }
+                    
+                    // reset sp object to return value
                     currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, returnType instanceof StructType ? returnType.getSize(): 4);
                 }
 
-                // reset sp object to args
+                // reset sp subjects to args size
                 if (!fc.args.isEmpty()) {
                     int totalSize = fc.args.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
                     currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, totalSize);
                 }
 
+                // should contains the value or the address of 
                 yield Arch.t0;
             }
 
@@ -230,13 +230,16 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case TypecastExpr typeCast -> {
-                //TODO
-                yield null;
+                yield visit(typeCast.expr);
             }
 
             case ValueAtExpr valexp -> {
-                //TODO
-                yield null;
+                // return value differs base on the variable type
+                Register resReg = visit(valexp.expr); // contains the address
+                // load value stored at resReg
+                currSec.emit(OpCode.LW, resReg, resReg, 0);
+
+                yield resReg;
             }
 
             case AddressOfExpr addrexp -> {

@@ -29,12 +29,12 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(fnName);
 
         // 1) emit the prolog
-        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); //
         currSec.emit(OpCode.SW, Arch.fp, Arch.sp, 0); // push frame pointer on the stack
 
         currSec.emit(OpCode.MOVZ, Arch.fp, Arch.sp, Arch.zero); // initialize frame pointer
 
-        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); //
         currSec.emit(OpCode.SW, Arch.ra, Arch.sp, 0); // push return address on the stack
 
         
@@ -58,10 +58,13 @@ public class FunCodeGen extends CodeGen {
 
         // 3) emit the epilog
         currSec.emit(OpCode.LW, Arch.ra, Arch.sp, 0); // restore return address
-        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4); //
 
         currSec.emit(OpCode.LW, Arch.fp, Arch.sp, 0); // restore frame pointer
-        currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4); //
+
+        // 4) jump back to ra
+        currSec.emit(OpCode.JR, Arch.ra);
     }
 
 
