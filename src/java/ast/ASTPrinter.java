@@ -151,7 +151,7 @@ public class ASTPrinter {
 
             case FieldAccessExpr fieldexpr -> {
                 writer.print("FieldAccessExpr(");
-                visit(fieldexpr.field);
+                visit(fieldexpr.structName);
                 writer.print("," + fieldexpr.name);
                 writer.print(")");
             }

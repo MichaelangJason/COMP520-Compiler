@@ -1,5 +1,6 @@
 package gen;
 
+import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
 import ast.Expr;
 import ast.FieldAccessExpr;
@@ -36,28 +37,41 @@ public class AddrCodeGen extends CodeGen {
 
                 yield resReg;
             }
-
+            
+            // returns the address where the data is actually stored
             case ArrayAccessExpr arrexp -> {
                 ExprCodeGen gen = new ExprCodeGen(asmProg);
                 Register resReg = Virtual.create();
                 Register varReg = gen.visit(arrexp); // 
 
-                currSec.emit(OpCode.SW, varReg, resReg, 0);
+                currSec.emit(OpCode.ADDI, resReg, varReg, 0);
         
                 yield resReg; // return a pointer to the start of the array
             }
 
+            // returns the address where the data is actually stored
             case FieldAccessExpr strexp -> {
                 ExprCodeGen gen = new ExprCodeGen(asmProg);
                 Register resReg = Virtual.create();
                 Register varReg = gen.visit(strexp);
 
-                currSec.emit(OpCode.SW, varReg, resReg, 0);
+                currSec.emit(OpCode.ADDI, resReg, varReg, 0);
 
                 yield resReg;
             }
 
-            default -> null;
+            case AddressOfExpr addexp -> {
+                ExprCodeGen gen = new ExprCodeGen(asmProg);
+                Register varReg = gen.visit(addexp.expr);
+                Register resReg = Virtual.create();
+
+                currSec.emit(OpCode.ADDI, resReg, varReg, 0);
+
+                yield resReg;
+            }
+
+
+            default ->  null;
         };
     }
 

@@ -1,5 +1,8 @@
 package gen;
 
+import java.sql.Struct;
+import java.util.stream.IntStream;
+
 import ast.*;
 import gen.asm.AssemblyProgram;
 import gen.asm.Label;
@@ -20,13 +23,16 @@ public class ExprCodeGen extends CodeGen {
     }
 
     public Register visit(Expr e) {
-        // TODO: to complete
         Section currSec = asmProg.getCurrentSection();
         return switch (e) {
             case FunCallExpr fc -> {
+                //TODO
                 // usage of fp is optional here, possible optimization for instruction executed
+                IntStream sizes = fc.fd.params.stream().mapToInt(VarDecl::getSize);
+                int totalSize = sizes.sum();
 
-                // push arguments on stack
+                
+                
                 for (Expr arg: fc.args) {
                     Register rg = visit(arg);
                     currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
@@ -51,8 +57,14 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case VarExpr vexp -> {
-                Register resReg = Virtual.create();
-                currSec.emit(OpCode.ADDI, resReg, Arch.fp, vexp.vd.fpOffset);
+                // get the address of the variable
+                Register resReg = (new AddrCodeGen(asmProg)).visit(vexp);
+
+                // the returned register should contain the value of var
+                // for array and struct, return return the address of it
+                if (vexp.type instanceof BaseType) {
+                    currSec.emit(vexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                }
 
                 yield resReg;
             }
@@ -179,7 +191,9 @@ public class ExprCodeGen extends CodeGen {
             }
             
             case SizeOfExpr sizeexp -> {
-                //TODO
+                Register resReg = Virtual.create();
+                currSec.emit(OpCode.LI, resReg, sizeexp.subtype.getSize());
+                
                 yield null;
             }
 
@@ -194,26 +208,80 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case AddressOfExpr addrexp -> {
-                //TODO
-                yield null;
+                Register resReg = (new AddrCodeGen(asmProg)).visit(addrexp);
+
+                yield resReg;
             }
 
             case ArrayAccessExpr arrexp -> {
-                //TODO
-                yield null;
+                Register resReg = Virtual.create();
+                
+                // get the index of the array
+                Register idxReg = visit(arrexp.idx);
+                // load type size into resReg
+                currSec.emit(OpCode.LI, resReg, arrexp.type.getSize());
+                // index * inner type size for array
+                // assume only lower 32 bit
+                currSec.emit(OpCode.MULT, idxReg, resReg);
+                currSec.emit(OpCode.MFLO, resReg); // move lowest 32 bit to resReg
+                
+                // find the head of the array
+                Register varReg = visit(arrexp.varName);
+                // set offset to index * inner type size
+                currSec.emit(OpCode.ADD, resReg, varReg, resReg);
+
+                yield resReg;
             }
 
             case FieldAccessExpr fldexp -> {
-                //TODO
-                yield null;
+                // get the head of the field access
+                Register resReg = visit(fldexp.structName);
+
+                // get type of fldExp, check if existed
+                StructTypeDecl std = ((StructType) fldexp.type).std;
+                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.name)))) throw new IllegalArgumentException();
+
+                
+                // get the offset to the target field
+                int offset = 0; Type fieldType = BaseType.UNKNOWN;
+                
+                for (VarDecl vd: std.vardecls) {
+                    if (vd.name.equals(fldexp.name)) fieldType = vd.type;
+                    offset += AsmHelper.paddedSize(vd.getSize());
+                }
+
+                // add offset to the head of resReg
+                currSec.emit(OpCode.ADDI, resReg, resReg, offset);
+                // return value if char or integer
+                if (fieldType instanceof BaseType) {
+                    currSec.emit(fieldType == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                }
+
+                yield resReg;
             }
 
             case Assign asiexp -> {
-                Register addrReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
+                Type type = asiexp.type;
+                Register varReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
                 Register valReg = visit(asiexp.rhs);
-                currSec.emit(OpCode.SW, valReg, addrReg, 0);
 
-                yield valReg;
+                if (type instanceof StructType) {
+                    // case copy word by word, 
+                    StructTypeDecl std = ((StructType) type).std;
+                    // iteration number based on the type size
+                    // varReg and valReg have same range
+                    for (int i = 0; i < (std.type.getSize() / 4); i++) {
+                        // load corresponding word to t0
+                        currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);
+                        // store corresponding word to variable
+                        currSec.emit(OpCode.SW, Arch.t0, varReg, 4*i);
+                    }
+                    
+                } else {
+                    currSec.emit(type == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, varReg, 0);
+                }
+
+                yield varReg;
             }
 
             default -> null;

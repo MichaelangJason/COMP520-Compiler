@@ -140,7 +140,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case FieldAccessExpr fldaccexpr -> {
-				Expr exp = fldaccexpr.field;
+				Expr exp = fldaccexpr.structName;
 
 				if (!(exp instanceof VarExpr || exp instanceof FieldAccessExpr || exp instanceof ArrayAccessExpr || exp instanceof ValueAtExpr
 				)) {

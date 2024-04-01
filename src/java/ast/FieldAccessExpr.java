@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class FieldAccessExpr extends Expr {
-    public final Expr field;
+    public final Expr structName;
     public final String name;
 
-    public FieldAccessExpr(Expr field, String name) {
-        this.field = field;
+    public FieldAccessExpr(Expr structExpr, String name) {
+        this.structName = structExpr;
         this.name = name;
     }
 
     @Override
     public List<ASTNode> children() {
         List<ASTNode> subexpr = new ArrayList<>();
-        subexpr.add(field);
+        subexpr.add(structName);
         return subexpr;
     }
 }
