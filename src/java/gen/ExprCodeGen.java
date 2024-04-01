@@ -1,6 +1,7 @@
 package gen;
 
 import java.sql.Struct;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import ast.*;
@@ -26,32 +27,63 @@ public class ExprCodeGen extends CodeGen {
         Section currSec = asmProg.getCurrentSection();
         return switch (e) {
             case FunCallExpr fc -> {
-                //TODO
-                // usage of fp is optional here, possible optimization for instruction executed
-                IntStream sizes = fc.fd.params.stream().mapToInt(VarDecl::getSize);
-                int totalSize = sizes.sum();
+                Type returnType = fc.fd.type;
+                List<VarDecl> params = fc.fd.params;
 
-                
-                
-                for (Expr arg: fc.args) {
-                    Register rg = visit(arg);
-                    currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4); //
-                    currSec.emit(OpCode.SW, rg, Arch.sp, 0); // push arguments on the stack
+                if (!params.isEmpty()) {
+                    ExprCodeGen gen = new ExprCodeGen(asmProg);
+                    // reversely push arguments to sp
+                    for (Expr arg: fc.args.reversed()) {
+                        Register valReg = gen.visit(arg);
+                        Type argType = arg.type;
+                        int argSize = AsmHelper.paddedSize(arg.type.getSize());
+
+                        // reserve stack size
+                        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -argSize);
+                        // copy value to stack
+                        if (argType instanceof StructType) {
+                            // case copy word by word, 
+                            StructTypeDecl std = ((StructType) argType).std;
+                            // assume valReg contains the address of struct
+                            for (int i = 0; i < argSize / 4; i++) {
+                                // load data contained in memory location to t0
+                                currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);
+                                // copy data contained in t0 to memory location of sp
+                                currSec.emit(OpCode.SW, Arch.t0, Arch.sp, 4*i);
+                            }
+
+                        } else {
+                            // for int, pointer type and array type, pass reference
+                            currSec.emit(argType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.sp, 0);
+                        }
+                    }
                 }
 
-                // reserve for any potential return value
-                currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, -4);
+                // reserve place for return value
+                if (returnType != BaseType.VOID) {
+                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnType.getSize(): 4));
+                }
 
                 // jump to corresponding procedure
                 currSec.emit(OpCode.JAL, Label.get(fc.name));
-                
-                // load return value to $t0
-                currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0);
-                currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4);
 
-                // reset sp
-                for (Expr args: fc.args)
-                    currSec.emit(OpCode.ADDI, Arch.sp, Arch.sp, 4); //
+                // depends on the returnType, either store value or address
+                switch(returnType) {
+                    case BaseType.INT: currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0); break;
+                    case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.t0, Arch.sp, 0); break;
+                    default: currSec.emit(OpCode.ADDIU, Arch.t0, Arch.sp, 0);
+                }
+                
+                // reset sp object to return value
+                if (returnType != BaseType.VOID) {
+                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, returnType instanceof StructType ? returnType.getSize(): 4);
+                }
+
+                // reset sp object to args
+                if (!fc.args.isEmpty()) {
+                    int totalSize = fc.args.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
+                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, totalSize);
+                }
 
                 yield Arch.t0;
             }

@@ -1,4 +1,6 @@
 void main() {
     
-    return 1;
+    while (0) {
+        continue;
+    }
 }

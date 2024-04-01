@@ -52,7 +52,7 @@ public class FunCodeGen extends CodeGen {
             }
             default: {
                 StmtCodeGen scd = new StmtCodeGen(asmProg);
-                scd.visit(fd.block);
+                scd.visit(fd.block, null);
             }
         }
 
