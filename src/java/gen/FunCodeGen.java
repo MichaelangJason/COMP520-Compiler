@@ -41,15 +41,12 @@ public class FunCodeGen extends CodeGen {
         // 2) emit the body of the function
         // supports builtin functions
         switch(fd.name) {
-            case "print_i": {
-                // get the argument
-                currSec.emit(OpCode.LW, Arch.a0, Arch.fp,8);
-                // load syscall
-                currSec.emit(OpCode.LI, Arch.v0, 1);
-                // perform syscall
-                currSec.emit(OpCode.SYSCALL);
-                break;
-            }
+            case "print_i": emit_print_i(currSec); break;
+            case "print_c": emit_print_c(currSec); break;
+            case "print_s": emit_print_s(currSec); break;
+            case "read_c": emit_read_c(currSec); break;
+            case "read_i": emit_read_i(currSec); break;
+            case "mcmalloc": emit_mcmalloc(currSec); break;
             default: {
                 StmtCodeGen scd = new StmtCodeGen(asmProg);
                 scd.visit(fd.block, null);
@@ -67,6 +64,58 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.JR, Arch.ra);
     }
 
+    private void emit_print_i(Section currSec) {
+        // get the argument
+        currSec.emit(OpCode.LW, Arch.a0, Arch.fp,8);
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 1);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+    }
 
+    private void emit_print_c(Section currSec) {
+        // get the argument from stack (no return value)
+        currSec.emit(OpCode.LB, Arch.a0, Arch.fp, 8);
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 11);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+    }
+
+    private void emit_print_s(Section currSec) {
+        // get the address of char array from stack, should be ended by \0
+        currSec.emit(OpCode.LW, Arch.a0, Arch.fp, 8);
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 4);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+        
+    }
+
+    private void emit_read_c(Section currSec) {
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 12);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+        // stored to v0
+    }
+
+    private void emit_read_i(Section currSec) {
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 5);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+        // stored to v0
+    }
+
+    private void emit_mcmalloc(Section currSec) {
+        // get number of bytes to allocate
+        currSec.emit(OpCode.LW, Arch.a0, Arch.sp, 8);
+        // load syscall
+        currSec.emit(OpCode.LI, Arch.v0, 9);
+        // perform syscall
+        currSec.emit(OpCode.SYSCALL);
+        // now v0 equals the address of allocated memory
+    }
 
 }

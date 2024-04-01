@@ -45,10 +45,10 @@ public class ExprCodeGen extends CodeGen {
                             StructTypeDecl std = ((StructType) argType).std;
                             // assume valReg contains the address of struct
                             for (int i = 0; i < argSize / 4; i++) {
-                                // load data contained in memory location to t0
-                                currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);
+                                // load data contained in memory location to v0
+                                currSec.emit(OpCode.LW, Arch.v0, valReg, 4*i);
                                 // copy data contained in t0 to memory location of sp
-                                currSec.emit(OpCode.SW, Arch.t0, Arch.sp, 4*i);
+                                currSec.emit(OpCode.SW, Arch.v0, Arch.sp, 4*i);
                             }
 
                         } else {
@@ -69,9 +69,9 @@ public class ExprCodeGen extends CodeGen {
                 if (returnType != BaseType.VOID) {
                     // depends on the returnType, either store value or address
                     switch(returnType) {
-                        case BaseType.INT: currSec.emit(OpCode.LW, Arch.t0, Arch.sp, 0); break;
-                        case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.t0, Arch.sp, 0); break;
-                        default: currSec.emit(OpCode.ADDIU, Arch.t0, Arch.sp, 0);
+                        case BaseType.INT: currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;
+                        case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.v0, Arch.sp, 0); break;
+                        default: currSec.emit(OpCode.ADDIU, Arch.v0, Arch.sp, 0);
                     }
                     
                     // reset sp object to return value
@@ -85,7 +85,7 @@ public class ExprCodeGen extends CodeGen {
                 }
 
                 // should contains the value or the address of 
-                yield Arch.t0;
+                yield Arch.v0;
             }
 
             case VarExpr vexp -> {
