@@ -296,7 +296,9 @@ public class ExprCodeGen extends CodeGen {
                 yield varReg;
             }
 
-            default -> null;
+            default -> {
+                throw new IllegalStateException();
+            }
         };
     }
 }

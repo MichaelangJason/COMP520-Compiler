@@ -79,8 +79,8 @@ public class ProgramCodeGen extends CodeGen {
         // p.decls.add(decl_mcmalloc);
         // p.decls.add(decl_read_i);
         // p.decls.add(decl_read_c);
-        p.decls.add(decl_print_c); 
-        // p.decls.add(decl_print_i);
+        // p.decls.add(decl_print_c); 
+        p.decls.add(decl_print_i);
         // p.decls.add(decl_print_s);
 
         // allocate all variables

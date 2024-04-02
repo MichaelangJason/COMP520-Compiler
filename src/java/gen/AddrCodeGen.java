@@ -8,6 +8,7 @@ import ast.FieldAccessExpr;
 import ast.StructType;
 import ast.StructTypeDecl;
 import ast.Type;
+import ast.ValueAtExpr;
 import ast.VarDecl;
 import ast.VarExpr;
 import gen.asm.AssemblyProgram;
@@ -37,7 +38,7 @@ public class AddrCodeGen extends CodeGen {
                 if (v.vd.fpOffset == -1) {
                     currSec.emit(OpCode.LA, resReg, v.vd.label);
                 } else {
-                    currSec.emit(OpCode.ADDI, resReg, Arch.fp, v.vd.fpOffset);
+                    currSec.emit(OpCode.ADDIU, resReg, Arch.fp, v.vd.fpOffset);
                 }
 
                 yield resReg;
@@ -97,8 +98,15 @@ public class AddrCodeGen extends CodeGen {
                 yield resReg;
             }
 
+            case ValueAtExpr valatexp -> {
+                // return the address contained in expr of *expr
+                yield (new ExprCodeGen(asmProg)).visit(valatexp.expr);
+            }
 
-            default ->  null;
+
+            default -> {
+                throw new IllegalStateException();
+            }
         };
     }
 
