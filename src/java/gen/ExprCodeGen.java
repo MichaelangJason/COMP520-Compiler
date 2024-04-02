@@ -52,7 +52,7 @@ public class ExprCodeGen extends CodeGen {
 
                         } else {
                             // for int, pointer type and array type, pass reference
-                            currSec.emit(argType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.sp, 0);
+                            currSec.emit(OpCode.SW, valReg, Arch.sp, 0);
                         }
                     }
                 }
@@ -312,7 +312,8 @@ public class ExprCodeGen extends CodeGen {
                     }
                     
                 } else {
-                    currSec.emit(type == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, varReg, 0);
+                    // for char, also pass the address of the label to it
+                    currSec.emit(OpCode.SW, valReg, varReg, 0);
                 }
 
                 yield varReg;

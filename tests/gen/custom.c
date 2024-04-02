@@ -1,5 +1,7 @@
 // void print_i(int i) {}
 
 void main() {
-    print_i(8);
+    int n;
+    n = 5;
+    print_i(n);
 }

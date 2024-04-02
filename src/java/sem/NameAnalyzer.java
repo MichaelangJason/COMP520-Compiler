@@ -214,6 +214,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				if (!(s instanceof FunDeclSymbol)) { error("[Name Analyzer]Function Undefined: "+f.name); break; }
 				f.fd = ((FunDeclSymbol) s).fd;
 				for (Expr arg: f.args) visit(arg, prev);
+				f.type = f.fd.type;
 			}
 
 			case VarExpr v -> {
@@ -221,6 +222,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				// search for an existing VarSymbol
 				if (!(s instanceof VarSymbol)) { error("[Name Analyzer]Variable Undeclared: "+v.name); break; }
 				v.vd = ((VarSymbol) s).vd;
+				v.type = v.vd.type;
 			}
 
 			case StructTypeDecl std -> {
