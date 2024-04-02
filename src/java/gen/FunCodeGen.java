@@ -60,13 +60,18 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LW, Arch.fp, Arch.sp, 0); // restore frame pointer
         currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4); //
 
-        // 4) jump back to ra
-        currSec.emit(OpCode.JR, Arch.ra);
+        // 4) jump back to ra (not for main)
+        if(!fd.name.equals("main")) currSec.emit(OpCode.JR, Arch.ra);
+        else {
+            currSec.emit(OpCode.LI, Arch.v0, 10);
+            currSec.emit(OpCode.SYSCALL);
+        }
+        
     }
 
     private void emit_print_i(Section currSec) {
         // get the argument
-        currSec.emit(OpCode.LW, Arch.a0, Arch.fp,8);
+        currSec.emit(OpCode.LW, Arch.a0, Arch.fp,4);
         // load syscall
         currSec.emit(OpCode.LI, Arch.v0, 1);
         // perform syscall
@@ -75,7 +80,7 @@ public class FunCodeGen extends CodeGen {
 
     private void emit_print_c(Section currSec) {
         // get the argument from stack (no return value)
-        currSec.emit(OpCode.LB, Arch.a0, Arch.fp, 8);
+        currSec.emit(OpCode.LB, Arch.a0, Arch.fp, 4);
         // load syscall
         currSec.emit(OpCode.LI, Arch.v0, 11);
         // perform syscall
@@ -84,7 +89,7 @@ public class FunCodeGen extends CodeGen {
 
     private void emit_print_s(Section currSec) {
         // get the address of char array from stack, should be ended by \0
-        currSec.emit(OpCode.LW, Arch.a0, Arch.fp, 8);
+        currSec.emit(OpCode.LW, Arch.a0, Arch.fp, 4);
         // load syscall
         currSec.emit(OpCode.LI, Arch.v0, 4);
         // perform syscall

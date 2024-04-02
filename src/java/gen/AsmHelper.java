@@ -6,6 +6,7 @@ public final class AsmHelper {
     }
 
     public static int getPadding(int orgSize) {
-        return 4 - orgSize % 4;
+        int paddedSize = orgSize % 4;
+        return paddedSize == 0 ? 0 : 4 - paddedSize;
     }
 }

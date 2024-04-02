@@ -30,10 +30,9 @@ public class ExprCodeGen extends CodeGen {
 
                 // push arguments onto stack if there is
                 if (!params.isEmpty()) {
-                    ExprCodeGen gen = new ExprCodeGen(asmProg);
                     // reversely push arguments to sp
                     for (Expr arg: fc.args.reversed()) {
-                        Register valReg = gen.visit(arg);
+                        Register valReg = visit(arg);
                         Type argType = arg.type;
                         int argSize = AsmHelper.paddedSize(arg.type.getSize());
 
