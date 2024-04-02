@@ -1,5 +1,6 @@
 java.lang.Throwable:
-gen.AddrCodeGen.visit(AddrCodeGen.java:102)
+gen.AddrCodeGen.visit(AddrCodeGen.java:108)
+gen.AddrCodeGen.visit(AddrCodeGen.java:56)
 gen.ExprCodeGen.visit(ExprCodeGen.java:276)
 gen.StmtCodeGen.visit(StmtCodeGen.java:29)
 gen.StmtCodeGen.lambda$0(StmtCodeGen.java:24)

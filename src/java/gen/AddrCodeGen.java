@@ -53,7 +53,7 @@ public class AddrCodeGen extends CodeGen {
                 // load type size into resReg
                 currSec.emit(OpCode.LI, resReg, arrexp.type.getSize());
                 // get the index of the array
-                Register idxReg = visit(arrexp.idx);
+                Register idxReg = (new ExprCodeGen(asmProg)).visit(arrexp.idx);
                 // index * inner type size for array
                 // assume only lower 32 bit
                 currSec.emit(OpCode.MULT, idxReg, resReg);
