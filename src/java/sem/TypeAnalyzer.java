@@ -41,6 +41,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case VarExpr v -> {
 				// to complete
+				v.type = v.vd.type;
 				yield v.vd != null ? v.vd.type : BaseType.UNKNOWN; // to change
 			}
 
@@ -66,6 +67,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					}
 				}
 
+				fc.type = fc.fd.type;
 				yield fc.fd.type;
 			}
 
@@ -174,7 +176,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					error("[Type Analyzer] FieldAccess Undefined field");
 					yield BaseType.UNKNOWN;
 				}
-			}
+			} 
 
 			case ValueAtExpr vexpr -> {
 				Type exprT = visit(vexpr.expr);
@@ -182,7 +184,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					error("[Type Analyzer] ValueAtExpr Wrong");
 					vexpr.type = BaseType.UNKNOWN;
 				} else {
-					vexpr.type = (Type) exprT.children().get(0);
+					vexpr.type = ((PointerType) exprT).type;
 				}
 				yield vexpr.type;
 			}
@@ -219,24 +221,26 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case Assign assi -> {
+				assi.type = BaseType.UNKNOWN;
+				
 				if (!(assi.lhs instanceof VarExpr || assi.lhs instanceof FieldAccessExpr || assi.lhs instanceof ArrayAccessExpr || assi.lhs instanceof ValueAtExpr
 				)) {
 					error("[Type Analyzer]Assignment no lvalue");
-					yield BaseType.UNKNOWN;
+					yield assi.type;
 				}
 
 				Type lhsT = visit(assi.lhs);
 				if (lhsT == BaseType.VOID || lhsT instanceof ArrayType) {
 					error("[Type Analyzer]Assignment unaccepted type");
-					yield BaseType.UNKNOWN;
+					yield assi.type;
 				}
 
 				Type rhsT = visit(assi.rhs);
 				if (!lhsT.equals(rhsT)) {
 					error("[Type Analyzer]Assignment Type Unmatched: "+lhsT+","+rhsT);
-					assi.type = BaseType.UNKNOWN;
 					yield assi.type;
 				}
+
 				assi.type = rhsT;
 				yield assi.type;
 			}
