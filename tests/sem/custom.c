@@ -1,6 +1,9 @@
+struct t {
+    int here;
+    char c[5];
+};
+
 void main() {
-    
-    while (0) {
-        continue;
-    }
+    struct t test;
+    test.c[0] = 'c';
 }

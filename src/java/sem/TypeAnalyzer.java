@@ -134,7 +134,10 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					yield BaseType.UNKNOWN;
 				} else {
 					Type subLhsT = (Type) lhsT.children().get(0);
-					if (subLhsT.equals(rhsT)) yield subLhsT;
+					if (rhsT == BaseType.INT) {
+						arraccexpr.type = subLhsT;
+						yield subLhsT;
+					}
 					else yield BaseType.UNKNOWN;
 				}
 			}
