@@ -2,8 +2,13 @@ package gen;
 
 import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
+import ast.BaseType;
 import ast.Expr;
 import ast.FieldAccessExpr;
+import ast.StructType;
+import ast.StructTypeDecl;
+import ast.Type;
+import ast.VarDecl;
 import ast.VarExpr;
 import gen.asm.AssemblyProgram;
 import gen.asm.OpCode;
@@ -40,30 +45,52 @@ public class AddrCodeGen extends CodeGen {
             
             // returns the address where the data is actually stored
             case ArrayAccessExpr arrexp -> {
-                ExprCodeGen gen = new ExprCodeGen(asmProg);
+                // get the head of array to be accessed
+                Register varReg = visit(arrexp.varName);
+                
                 Register resReg = Virtual.create();
-                Register varReg = gen.visit(arrexp); // 
+                // load type size into resReg
+                currSec.emit(OpCode.LI, resReg, arrexp.type.getSize());
+                // get the index of the array
+                Register idxReg = visit(arrexp.idx);
+                // index * inner type size for array
+                // assume only lower 32 bit
+                currSec.emit(OpCode.MULT, idxReg, resReg);
+                currSec.emit(OpCode.MFLO, resReg); // move lowest 32 bit to resReg, now resReg contains 
 
-                currSec.emit(OpCode.ADDI, resReg, varReg, 0);
+                // set offset to index * inner type size, point to the target value address
+                currSec.emit(OpCode.ADD, resReg, varReg, resReg);
         
-                yield resReg; // return a pointer to the start of the array
+                yield resReg; // return a pointer to the memory location
             }
 
             // returns the address where the data is actually stored
-            case FieldAccessExpr strexp -> {
-                ExprCodeGen gen = new ExprCodeGen(asmProg);
-                Register resReg = Virtual.create();
-                Register varReg = gen.visit(strexp);
+            case FieldAccessExpr fldexp -> {
+                 // get the head of the struct to be accessed
+                Register resReg = visit(fldexp.structName);
 
-                currSec.emit(OpCode.ADDI, resReg, varReg, 0);
+                // get type of fldExp, check if existed
+                StructTypeDecl std = ((StructType) fldexp.structName.type).std;
+                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.name)))) throw new IllegalArgumentException();
+ 
+                
+                // get the offset to the target field
+                int offset = 0;
+                
+                for (VarDecl vd: std.vardecls) {
+                    if (vd.name.equals(fldexp.name)) break;
+                    offset += AsmHelper.paddedSize(vd.getSize());
+                }
+            
+                // load address to resReg
+                currSec.emit(OpCode.ADDI, resReg, resReg, offset);
 
                 yield resReg;
             }
 
             case AddressOfExpr addexp -> {
-                ExprCodeGen gen = new ExprCodeGen(asmProg);
-                Register varReg = gen.visit(addexp.expr);
                 Register resReg = Virtual.create();
+                Register varReg = visit(addexp.expr);
 
                 currSec.emit(OpCode.ADDI, resReg, varReg, 0);
 

@@ -248,47 +248,24 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case ArrayAccessExpr arrexp -> {
-                Register resReg = Virtual.create();
-                
-                // get the index of the array
-                Register idxReg = visit(arrexp.idx);
-                // load type size into resReg
-                currSec.emit(OpCode.LI, resReg, arrexp.type.getSize());
-                // index * inner type size for array
-                // assume only lower 32 bit
-                currSec.emit(OpCode.MULT, idxReg, resReg);
-                currSec.emit(OpCode.MFLO, resReg); // move lowest 32 bit to resReg
-                
-                // find the head of the array
-                Register varReg = visit(arrexp.varName);
-                // set offset to index * inner type size
-                currSec.emit(OpCode.ADD, resReg, varReg, resReg);
+                // get address of the head of the array
+                Register resReg = (new AddrCodeGen(asmProg)).visit(arrexp);
+
+                // return value if char or integer
+                if (arrexp.type instanceof BaseType) {
+                    currSec.emit(arrexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                }
 
                 yield resReg;
             }
 
             case FieldAccessExpr fldexp -> {
-                // get the head of the field access
-                Register resReg = visit(fldexp.structName);
+                // get the address of the field to be accessed
+                Register resReg = (new AddrCodeGen(asmProg)).visit(fldexp);
 
-                // get type of fldExp, check if existed
-                StructTypeDecl std = ((StructType) fldexp.type).std;
-                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.name)))) throw new IllegalArgumentException();
-
-                
-                // get the offset to the target field
-                int offset = 0; Type fieldType = BaseType.UNKNOWN;
-                
-                for (VarDecl vd: std.vardecls) {
-                    if (vd.name.equals(fldexp.name)) fieldType = vd.type;
-                    offset += AsmHelper.paddedSize(vd.getSize());
-                }
-
-                // add offset to the head of resReg
-                currSec.emit(OpCode.ADDI, resReg, resReg, offset);
                 // return value if char or integer
-                if (fieldType instanceof BaseType) {
-                    currSec.emit(fieldType == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                if (fldexp.type instanceof BaseType) {
+                    currSec.emit(fldexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
                 }
 
                 yield resReg;

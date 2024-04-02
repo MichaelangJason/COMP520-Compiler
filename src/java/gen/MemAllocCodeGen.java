@@ -34,7 +34,7 @@ public class MemAllocCodeGen extends CodeGen {
      */
     void visit(ASTNode n) {
         
-        switch (n) {
+            switch (n) {
             case VarDecl vd -> {
                 if (this.global) {
                     int size = vd.getSize();
@@ -78,7 +78,7 @@ public class MemAllocCodeGen extends CodeGen {
 
                 dataSection.emit(label);
                 dataSection.emit(new Directive("asciiz \"%s\"".formatted(strlit.val)));
-                if (strlit.val.length() % 4 != 0) dataSection.emit(new Directive(".align "+ AsmHelper.getPadding(strlit.val.length())));
+                if (strlit.val.length() % 4 != 0) dataSection.emit(new Directive("align "+ AsmHelper.getPadding(strlit.val.length())));
             }
 
             case ChrLiteral chrlit -> {
@@ -95,6 +95,7 @@ public class MemAllocCodeGen extends CodeGen {
             }
 
             default -> {
+                if (n instanceof StructTypeDecl) break;
                 for (ASTNode c: n.children()) visit(c);
             }
         }
