@@ -73,7 +73,7 @@ public class MemAllocCodeGen extends CodeGen {
                 // break if already existed
                 if (chrTable.containsKey(strlit.val)) break;
                 // static allocation
-                Label label = Label.create(strlit.val);
+                Label label = Label.create();
                 chrTable.put(strlit.val, label);
 
                 dataSection.emit(label);
