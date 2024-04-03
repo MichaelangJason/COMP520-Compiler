@@ -41,7 +41,7 @@ public class ExprCodeGen extends CodeGen {
                         // copy value to stack
                         if (argType instanceof StructType) {
                             // case copy word by word, 
-                            StructTypeDecl std = ((StructType) argType).std;
+                            // StructTypeDecl std = ((StructType) argType).std;        
                             // assume valReg contains the address of struct
                             for (int i = 0; i < argSize / 4; i++) {
                                 // load data contained in memory location to v0
@@ -110,7 +110,7 @@ public class ExprCodeGen extends CodeGen {
                 if (!MemAllocCodeGen.chrTable.containsKey(strlit.val)) yield null;
                 // retrieve from MemAlloc hashmap
                 Label label = MemAllocCodeGen.chrTable.get(strlit.val);
-                // load to resReg
+                // load address to resReg, treated like pointers
                 Register resReg = Virtual.create();
                 currSec.emit(OpCode.LA, resReg, label);
                 
@@ -125,6 +125,8 @@ public class ExprCodeGen extends CodeGen {
                 // load to resReg
                 Register resReg = Virtual.create();
                 currSec.emit(OpCode.LA, resReg, label);
+                // load value to resReg
+                currSec.emit(OpCode.LB, resReg, resReg, 0);
                 
                 yield resReg;
             }
@@ -290,7 +292,7 @@ public class ExprCodeGen extends CodeGen {
                     
                 } else {
                     // for char, also pass the address of the label to it
-                    currSec.emit(OpCode.SW, valReg, varReg, 0);
+                    currSec.emit(type == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, varReg, 0);
                 }
 
                 yield varReg;

@@ -47,6 +47,9 @@ public class StmtCodeGen extends CodeGen {
                 // emit body of while label
                 visit(wlStmt.stmt, wlStmt);
 
+                // emit loop
+                currSec.emit(OpCode.J, whileLbl);
+
                 // emit endLbl
                 currSec.emit(endLbl);
             }
@@ -80,11 +83,11 @@ public class StmtCodeGen extends CodeGen {
                     if (returnType instanceof StructType) {
                         // copy word by word onto stack
                         for (int i = 0; i < returnType.getSize() / 4; i++) {
-                            currSec.emit(OpCode.SW, valReg, Arch.sp, 4*i);
+                            currSec.emit(OpCode.SW, valReg, Arch.fp, 4*i);
                         }
                     } else {
                         // copy
-                        currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.sp, 0);
+                        currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.fp, 4);
                     }
                 }
                 // jump back to ra

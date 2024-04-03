@@ -1,9 +1,15 @@
+struct t
+{
+    char arr[2][2];
+};
+
+int n;
+char a;
+
 void main() {
-    // struct t test;
-    // int c[2][3];
-    // c[0][0] = 1;
-    // c[1][2] = 4;
-    char a;
-    a = 'a';
-    print_c(a);
+    n = 10;
+    while (n > 0) {
+        print_i(n);
+        n = n - 1;
+    }
 }

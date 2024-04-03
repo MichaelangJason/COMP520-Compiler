@@ -44,9 +44,9 @@ public class MemAllocCodeGen extends CodeGen {
                     // emit declaration
                     dataSection.emit(new Directive("space " + vd.getSize()));
                     // emit padding for any unaligned space
-                    if (size % 4 != 0) dataSection.emit(new Directive("align " + (4 - size % 4)));
+                    if (size % 4 != 0) dataSection.emit(new Directive("align " + AsmHelper.getPadding(size)));
                 } else {
-                    this.fpOffset -= vd.getSize();
+                    this.fpOffset -= AsmHelper.paddedSize(vd.getSize());
                     vd.fpOffset = this.fpOffset;
                 }
             }

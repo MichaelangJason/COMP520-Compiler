@@ -41,8 +41,9 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case VarExpr v -> {
 				// to complete
+				if (v.vd == null) yield BaseType.UNKNOWN;
 				v.type = v.vd.type;
-				yield v.vd != null ? v.vd.type : BaseType.UNKNOWN; // to change
+				yield v.type; // to change
 			}
 
 			case StructTypeDecl std -> {

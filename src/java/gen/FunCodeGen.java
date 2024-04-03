@@ -81,9 +81,6 @@ public class FunCodeGen extends CodeGen {
     private void emit_print_c(Section currSec) {
         // get the argument from stack (no return value)
         currSec.emit(OpCode.LW, Arch.a0, Arch.fp, 4);
-        // retrieve the character
-        currSec.emit(OpCode.LW, Arch.a0, Arch.a0, 0);
-
         // load syscall
         currSec.emit(OpCode.LI, Arch.v0, 11);
         // perform syscall
