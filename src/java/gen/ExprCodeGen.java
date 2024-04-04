@@ -4,6 +4,7 @@ import java.util.List;
 
 import ast.*;
 import gen.asm.AssemblyProgram;
+import gen.asm.Comment;
 import gen.asm.Label;
 import gen.asm.Register;
 import gen.asm.Register.Arch;
@@ -27,7 +28,7 @@ public class ExprCodeGen extends CodeGen {
             case FunCallExpr fc -> {
                 Type returnType = fc.fd.type;
                 List<VarDecl> params = fc.fd.params;
-
+                currSec.emit(new Comment("Execute "+fc.name));
                 // push arguments onto stack if there is
                 if (!params.isEmpty()) {
                     // reversely push arguments to sp
@@ -52,7 +53,7 @@ public class ExprCodeGen extends CodeGen {
 
                         } else {
                             // for int, pointer type and array type, pass reference
-                            currSec.emit(OpCode.SW, valReg, Arch.sp, 0);
+                            currSec.emit(argType == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, Arch.sp, 0);
                         }
                     }
                 }
@@ -83,6 +84,7 @@ public class ExprCodeGen extends CodeGen {
                     int totalSize = fc.args.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
                     currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, totalSize);
                 }
+                currSec.emit(new Comment("Return From "+fc.name));
 
                 // should contains the value or the address of 
                 yield Arch.v0;

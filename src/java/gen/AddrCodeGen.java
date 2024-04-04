@@ -50,8 +50,9 @@ public class AddrCodeGen extends CodeGen {
                 Register varReg = visit(arrexp.varName);
                 
                 Register resReg = Virtual.create();
+                int typeSize = arrexp.type.getSize();
                 // load type size into resReg
-                currSec.emit(OpCode.LI, resReg, arrexp.type.getSize());
+                currSec.emit(OpCode.LI, resReg, typeSize);
                 // get the index of the array
                 Register idxReg = (new ExprCodeGen(asmProg)).visit(arrexp.idx);
                 // index * inner type size for array
