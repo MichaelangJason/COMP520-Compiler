@@ -7,6 +7,6 @@ int n;
 char a;
 
 void main() {
-
+    
     print_s((char *)"hello world !");
 }
