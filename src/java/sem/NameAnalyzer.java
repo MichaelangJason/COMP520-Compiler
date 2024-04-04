@@ -146,10 +146,12 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					if (proto instanceof VarSymbol) {
 						error("[Name Analyzer]FunDecl conflict"); break;
 					}
+
 					if (!(proto instanceof FunProtoSymbol )) {
 						// check params scope
 						Scope oldScope = scope;
 						scope = new Scope(oldScope);
+						visit(fd.type, fd);
 						for (ASTNode n: fd.params) visit(n, fd);
 						scope = oldScope;
 						scope.put(new FunDeclSymbol(fd));
@@ -162,7 +164,8 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						Type declaredType = fpProto.type;
 						if (givenType.equals(declaredType) && fd.params.size() == fpProto.params.size()) {
 							Scope oldScope = scope;
-							scope = new Scope(oldScope);
+							scope = new Scope(oldScope);						
+							visit(fd.type, fd);
 							for (ASTNode n: fd.params) visit(n, fd);
 							scope = oldScope;
 

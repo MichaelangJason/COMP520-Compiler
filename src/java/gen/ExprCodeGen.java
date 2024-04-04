@@ -280,10 +280,10 @@ public class ExprCodeGen extends CodeGen {
 
                 if (type instanceof StructType) {
                     // case copy word by word, 
-                    StructTypeDecl std = ((StructType) type).std;
+                    // StructTypeDecl std = ((StructType) type).std;
                     // iteration number based on the type size
                     // varReg and valReg have same range
-                    for (int i = 0; i < (std.type.getSize() / 4); i++) {
+                    for (int i = 0; i < (type.getSize() / 4); i++) {
                         // load corresponding word to t0
                         currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);
                         // store corresponding word to variable

@@ -17,6 +17,7 @@ public final class FunDecl extends Decl {
 
     public List<ASTNode> children() {
         List<ASTNode> children = new ArrayList<>();
+        children.add(type);
         children.addAll(params);
         children.add(block);
         return children;

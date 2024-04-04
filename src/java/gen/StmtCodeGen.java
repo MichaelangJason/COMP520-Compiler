@@ -10,6 +10,7 @@ import gen.asm.Register.Arch;
 
 public class StmtCodeGen extends CodeGen {
     Section currSec;
+    boolean alreadyReturned = false;
 
     public StmtCodeGen(AssemblyProgram asmProg) {
         this.asmProg = asmProg;
@@ -21,6 +22,7 @@ public class StmtCodeGen extends CodeGen {
             case Block b -> {
                 // no need to do anything with varDecl (memory allocator takes care of them)
                 b.stmts.forEach((innerStmt) -> {
+                    if (this.alreadyReturned) return;
                     visit(innerStmt, prev);
                 });
             }
@@ -90,8 +92,9 @@ public class StmtCodeGen extends CodeGen {
                         currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.fp, 4);
                     }
                 }
-                // jump back to ra
-                currSec.emit(OpCode.JR, Arch.ra);
+                // // jump back to ra
+                // currSec.emit(OpCode.JR, Arch.ra);
+                this.alreadyReturned = true;
             }
 
             case Continue ctnStmt -> {
