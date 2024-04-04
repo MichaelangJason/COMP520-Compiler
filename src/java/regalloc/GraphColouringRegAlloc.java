@@ -12,6 +12,7 @@ import gen.asm.Label;
 import gen.asm.OpCode;
 import gen.asm.Register;
 import gen.asm.AssemblyProgram.Section;
+import gen.asm.Instruction.LoadImmediate;
 
 public class GraphColouringRegAlloc implements AssemblyPass {
 
@@ -35,12 +36,39 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         public final Instruction inst;
         public final List<Node> predNodes = new ArrayList<>();
         public final List<Node> succNodes = new ArrayList<>();
-        public final List<Register.Virtual> liveVarsAfter = new ArrayList<>();
+        public final List<Register.Virtual> use = new ArrayList<>();
+        public final List<Register.Virtual> def = new ArrayList<>();
         public final List<Node> liveIn = new ArrayList<>();
         public final List<Node> liveOut = new ArrayList<>();
         
         public Node(Instruction inst) {
             this.inst = inst;
+        }
+
+        public void addPredNodes(Node node) {
+            predNodes.add(node);
+        }
+
+        public void addSuccNodes(Node node) {
+            succNodes.add(node);
+        }
+
+        public void useVars(Register reg) {
+            assert reg instanceof Register.Virtual;
+            use.add((Register.Virtual) reg);
+        }
+
+        public void defVars(Register reg) {
+            assert reg instanceof Register.Virtual;
+            def.add((Register.Virtual) reg);
+        }
+
+        public void liveInVars(Node node) {
+            liveIn.add(node);
+        }
+
+        public void liveOutVars(Node node) {
+            liveOut.add(node);
         }
     }
 
@@ -93,41 +121,140 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                  * 2. Branching instruction, like 1., but also add to lbl's pred
                  * 3. Jumping (j),
                  * 4. jr and jal are ignored, just treat as 1.
+                 *
+                 * For register def, if dest register is a variable:
+                 * 1. Ternary/Binary/Unary Arithmetic 
+                 * 2. LoadImmediate
+                 * 3. ArithmeticWithImmediate
+                 * 
+                 * For register use, if any source register is a variable
                  */
-                switch(inst.opcode) {
-                    case OpCode.UnaryBranch ub -> {
+                switch(inst) {
+                    case Instruction.TernaryArithmetic ta -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+
+                        // check destination
+                        if (ta.dst.isVirtual()) currNode.defVars(ta.dst);
+                        
+                        // check source register
+                        if (ta.src1.isVirtual()) currNode.useVars(ta.src1);
+                        if (ta.src2.isVirtual()) currNode.useVars(ta.src2);
+
+                    }
+
+                    case Instruction.BinaryArithmetic ba -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1));
+                        
+                        // check source register
+                        if (ba.src1.isVirtual()) currNode.useVars(ba.src1);
+                        if (ba.src2.isVirtual()) currNode.useVars(ba.src2);
+                    }
+
+                    case Instruction.UnaryArithmetic ua -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+
+                        // check dest, MFLO, MFHI
+                        if (ua.dst.isVirtual()) currNode.defVars(ua.dst);
+                    }
+
+                    case Instruction.ArithmeticWithImmediate ai -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+
+                        // check dst
+                        if (ai.dst.isVirtual()) currNode.defVars(ai.dst);
+                        // check source
+                        if (ai.src.isVirtual()) currNode.useVars(ai.src);
+                        
+                    }
+
+                    case Instruction.MemIndirect mi -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+                        
+                        if (mi instanceof Instruction.Load) {
+                            // check destination
+                            if (mi.op1.isVirtual()) currNode.defVars(mi.op1);
+                            // check source
+                            if (mi.op2.isVirtual()) currNode.useVars(mi.op2);
+                        } else {
+                            // check sources
+                            if (mi.op1.isVirtual()) currNode.useVars(mi.op1);
+                            if (mi.op2.isVirtual()) currNode.useVars(mi.op2);
+                        }
+                    }
+
+                    case Instruction.LoadImmediate li -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+                        // check destination
+                        if (li.dst.isVirtual()) currNode.defVars(li.dst);
+                    }
+
+                    case Instruction.LoadAddress la -> {
+                        // branching
+                        currNode.predNodes.add(instNodes.get(i-1));
+                        currNode.succNodes.add(instNodes.get(i+1)); 
+                        // check destination
+                        if (la.dst.isVirtual()) currNode.defVars(la.dst);
+                    }
+
+                    case Instruction.UnaryBranch ub -> {
                         // branching
                         currNode.predNodes.add(instNodes.get(i-1));
                         currNode.succNodes.add(instNodes.get(i+1));
                         
                         // find the node branched to
-                        Label precLbl = ((Instruction.UnaryBranch) inst).label;
+                        Label precLbl = ub.label;
                         Node pred = lbls.get(precLbl);
 
                         // add to current's succNodes
                         currNode.succNodes.add(lbls.get(precLbl));
                         // add to pred's predNodes
                         pred.predNodes.add(currNode);
+
+                        // check sources
+                        if (ub.src.isVirtual()) currNode.useVars(ub.src);
                     }
 
-                    case OpCode.BinaryBranch bb -> {
+                    case Instruction.BinaryBranch bb -> {
                         // branching
                         currNode.predNodes.add(instNodes.get(i-1));
                         currNode.succNodes.add(instNodes.get(i+1));
                         
                         // find the node branched to
-                        Label precLbl = ((Instruction.BinaryBranch) inst).label;
+                        Label precLbl = bb.label;
                         Node pred = lbls.get(precLbl);
 
                         // add to current's succNodes
                         currNode.succNodes.add(lbls.get(precLbl));
                         // add to pred's predNodes
                         pred.predNodes.add(currNode);
+
+                        // check sources
+                        if (bb.src1.isVirtual()) currNode.useVars(bb.src1);
+                        if (bb.src2.isVirtual()) currNode.useVars(bb.src2);
                     }
 
-                    case OpCode.Jump jp -> {
+                    case Instruction.Jump jp -> {
                         // jumping, only add the previous node to pred
                         currNode.predNodes.add(instNodes.get(i-1));
+                    }
+
+                    case Instruction.JumpRegister jr -> {
+                        // jumping, only add the previous node to pred
+                        currNode.addPredNodes(instNodes.get(i-1));
+                        // check src, should never be true
+                        if (jr.address.isVirtual()) currNode.useVars(jr.address);
                     }
 
                     default -> {
@@ -139,14 +266,20 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             }
 
         }
+
     }
 
     private class LivenessAnalyzer {
         private final CFG graph;
 
 
-        public LivenessAnalyzer(CFG graph) {
-            this.graph = graph;
+        public LivenessAnalyzer(Section sec) {
+            this.graph = new CFG(sec);
         }
+
+        public void Analyze() {
+            
+        }
+
     }
 }
