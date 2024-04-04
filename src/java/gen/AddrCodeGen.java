@@ -100,7 +100,7 @@ public class AddrCodeGen extends CodeGen {
 
             case ValueAtExpr valatexp -> {
                 // return the address contained in expr of *expr
-                yield (new ExprCodeGen(asmProg)).visit(valatexp.expr);
+                yield visit(valatexp.expr);
             }
 
 

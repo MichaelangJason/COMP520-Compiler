@@ -76,7 +76,7 @@ public class ProgramCodeGen extends CodeGen {
             new Block(new ArrayList<>(), new ArrayList<>())
         );
         // add dummy declaration to the top of program decl;
-        // p.decls.add(decl_mcmalloc);
+        p.decls.add(decl_mcmalloc);
         // p.decls.add(decl_read_i);
         // p.decls.add(decl_read_c);
         p.decls.add(decl_print_c); 

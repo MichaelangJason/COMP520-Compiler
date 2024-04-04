@@ -79,20 +79,21 @@ public class StmtCodeGen extends CodeGen {
                 if (returnType != BaseType.VOID){
                     // pushes return value onto stack?
                     // handled by FunCall?
-                    Register valReg = (new ExprCodeGen(asmProg)).visit(rtnStmt.expr);
+                    Register varReg = (new ExprCodeGen(asmProg)).visit(rtnStmt.expr);
 
                     // copy return value to reserved sp
                     if (returnType instanceof StructType) {
                         // copy word by word onto stack
                         for (int i = 0; i < returnType.getSize() / 4; i++) {
-                            currSec.emit(OpCode.SW, valReg, Arch.fp, 4*i);
+                            currSec.emit(OpCode.LW, Arch.t0, varReg, 4*i);
+                            currSec.emit(OpCode.SW, Arch.t0, Arch.fp, 4*(i+1));
                         }
                     } else {
                         // copy
-                        currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, Arch.fp, 4);
+                        currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, varReg, Arch.fp, 4);
                     }
                 }
-                // // jump back to ra
+                // jump back to ra
                 // currSec.emit(OpCode.JR, Arch.ra);
                 this.alreadyReturned = true;
             }

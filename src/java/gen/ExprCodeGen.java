@@ -59,7 +59,8 @@ public class ExprCodeGen extends CodeGen {
 
                 // reserve place for return value
                 if (returnType != BaseType.VOID) {
-                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnType.getSize(): 4));
+                    int returnSize = returnType.getSize();
+                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnSize: 4));
                 }
 
                 // jump to corresponding procedure
@@ -227,7 +228,7 @@ public class ExprCodeGen extends CodeGen {
                 Register resReg = Virtual.create();
                 currSec.emit(OpCode.LI, resReg, sizeexp.subtype.getSize());
                 
-                yield null;
+                yield resReg;
             }
 
             case TypecastExpr typeCast -> {
@@ -279,10 +280,6 @@ public class ExprCodeGen extends CodeGen {
                 Register valReg = visit(asiexp.rhs);
 
                 if (type instanceof StructType) {
-                    // case copy word by word, 
-                    // StructTypeDecl std = ((StructType) type).std;
-                    // iteration number based on the type size
-                    // varReg and valReg have same range
                     for (int i = 0; i < (type.getSize() / 4); i++) {
                         // load corresponding word to t0
                         currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);

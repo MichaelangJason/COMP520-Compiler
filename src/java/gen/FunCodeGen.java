@@ -1,6 +1,5 @@
 package gen;
 
-import ast.FunDecl;
 import ast.*;
 import gen.asm.*;
 import gen.asm.AssemblyProgram.Section;
@@ -94,7 +93,6 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LI, Arch.v0, 4);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
-        
     }
 
     private void emit_read_c(Section currSec) {
@@ -102,7 +100,9 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LI, Arch.v0, 12);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
-        // stored to v0
+        // stored to v0, and copy to reserved space
+        currSec.emit(OpCode.SB, Arch.v0, Arch.fp, 4);
+        
     }
 
     private void emit_read_i(Section currSec) {
@@ -110,7 +110,8 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LI, Arch.v0, 5);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
-        // stored to v0
+        // stored to v0, and copy to reserved space]
+        currSec.emit(OpCode.SW, Arch.v0, Arch.fp, 4);
     }
 
     private void emit_mcmalloc(Section currSec) {
@@ -120,7 +121,8 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LI, Arch.v0, 9);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
-        // now v0 equals the address of allocated memory
+        // now v0 equals the address of allocated memory, copy to reserved space
+        currSec.emit(OpCode.SB, Arch.v0, Arch.fp, 4);
     }
 
 }
