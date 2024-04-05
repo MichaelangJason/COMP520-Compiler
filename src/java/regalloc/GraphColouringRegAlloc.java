@@ -18,7 +18,7 @@ import gen.asm.AssemblyProgram.Section;
 public class GraphColouringRegAlloc implements AssemblyPass {
 
     public static final GraphColouringRegAlloc INSTANCE = new GraphColouringRegAlloc();
-
+    public HashMap<Section, CFG> cfgs = new HashMap<>();
 
     @Override
     public AssemblyProgram apply(AssemblyProgram program) {
@@ -28,8 +28,11 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         program.sections.forEach((section) -> {
             if (section.type != Section.Type.TEXT) return;
             CFG cfg = new CFG(section);
+            cfgs.put(section, cfg);
+            cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
         });
 
+        // create dot graph for
         // we assume that each function has a single corresponding text section
         
 
@@ -39,6 +42,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
     }
 
     private class Node {
+        public final CFG cfg;
         public final Instruction inst;
         public final List<Node> predNodes = new ArrayList<>();
         public final List<Node> succNodes = new ArrayList<>();
@@ -47,26 +51,32 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         public final List<Node> liveIn = new ArrayList<>();
         public final List<Node> liveOut = new ArrayList<>();
         
-        public Node(Instruction inst) {
+        public Node(Instruction inst, CFG cfg) {
             this.inst = inst;
+            this.cfg = cfg;
         }
 
-        public void addPredNodes(Node node) {
+        public void addPredNode(Node node) {
             predNodes.add(node);
         }
 
-        public void addSuccNodes(Node node) {
+        public void addSuccNode(Node node) {
             succNodes.add(node);
         }
 
         public void useVars(Register reg) {
             assert reg instanceof Register.Virtual;
             use.add((Register.Virtual) reg);
+            cfg.addVars((Register.Virtual) reg);
+            cfg.addToVarUses((Register.Virtual) reg, this);
+
         }
 
         public void defVars(Register reg) {
             assert reg instanceof Register.Virtual;
             def.add((Register.Virtual) reg);
+            cfg.addVars((Register.Virtual) reg);
+            cfg.addToVarDefs((Register.Virtual) reg, this);
         }
 
         public void liveInVars(Node node) {
@@ -82,12 +92,27 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         // only deal with instruction, not directive
         public final List<Node> instNodes = new ArrayList<>();
         public final HashMap<Label, Node> lbls = new HashMap<>();
-
+        // Maintain a list of Virtual Registers (Variable)
+        public final List<Register.Virtual> vars = new ArrayList<>();
+        public final HashMap<Register.Virtual, List<Node>> varDefs = new HashMap<>();
+        public final HashMap<Register.Virtual, List<Node>> varUses = new HashMap<>();
 
         public CFG(Section sec) {
             assert sec.type == Section.Type.TEXT;
             buildCFG(sec);
             writeDotGraph("tests/col/CFG.dot");
+        }
+
+        public void addVars(Register.Virtual var) {
+            if (!vars.contains(var)) vars.add(var);
+        }
+
+        public void addToVarDefs(Register.Virtual var, Node node) {
+            varDefs.computeIfAbsent(var, v -> new ArrayList<>()).add(node);
+        }
+
+        public void addToVarUses(Register.Virtual var, Node node) {
+            varUses.computeIfAbsent(var, v -> new ArrayList<>()).add(node);
         }
 
         private void buildCFG(Section sec)  {
@@ -106,7 +131,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                             if (!(next instanceof Instruction)) continue;
                             // if found, create a new Node for next instruction and add it to hashmap, skip the added instruction
                             else { 
-                                Node node = new Node((Instruction) next);
+                                Node node = new Node((Instruction) next, this);
                                 instNodes.add(node);
                                 lbls.put(lbl, node); 
                                 i = j; 
@@ -117,7 +142,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                     }
                     case Instruction inst -> {
                         // add to nodes
-                        instNodes.add(new Node(inst));
+                        instNodes.add(new Node(inst, this));
                     }
                     default -> { /* skip others */ }
                 }
@@ -145,8 +170,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                 switch(inst) {
                     case Instruction.TernaryArithmetic ta -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
 
                         // check destination
                         if (ta.dst.isVirtual()) currNode.defVars(ta.dst);
@@ -159,8 +184,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.BinaryArithmetic ba -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1));
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1));
                         
                         // check source register
                         if (ba.src1.isVirtual()) currNode.useVars(ba.src1);
@@ -169,8 +194,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.UnaryArithmetic ua -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
 
                         // check dest, MFLO, MFHI
                         if (ua.dst.isVirtual()) currNode.defVars(ua.dst);
@@ -178,8 +203,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.ArithmeticWithImmediate ai -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
 
                         // check dst
                         if (ai.dst.isVirtual()) currNode.defVars(ai.dst);
@@ -190,8 +215,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.MemIndirect mi -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
                         
                         if (mi instanceof Instruction.Load) {
                             // check destination
@@ -207,33 +232,33 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.LoadImmediate li -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
                         // check destination
                         if (li.dst.isVirtual()) currNode.defVars(li.dst);
                     }
 
                     case Instruction.LoadAddress la -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1)); 
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1)); 
                         // check destination
                         if (la.dst.isVirtual()) currNode.defVars(la.dst);
                     }
 
                     case Instruction.UnaryBranch ub -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1));
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1));
                         
                         // find the node branched to
                         Label precLbl = ub.label;
                         Node pred = lbls.get(precLbl);
 
                         // add to current's succNodes
-                        currNode.succNodes.add(pred);
+                        currNode.addSuccNode(pred);
                         // add to pred's predNodes
-                        pred.predNodes.add(currNode);
+                        pred.addPredNode(currNode);
 
                         // check sources
                         if (ub.src.isVirtual()) currNode.useVars(ub.src);
@@ -241,17 +266,17 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.BinaryBranch bb -> {
                         // branching
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1));
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1));
                         
                         // find the node branched to
                         Label precLbl = bb.label;
                         Node pred = lbls.get(precLbl);
 
                         // add to current's succNodes
-                        currNode.succNodes.add(pred);
+                        currNode.addSuccNode(pred);
                         // add to pred's predNodes
-                        pred.predNodes.add(currNode);
+                        pred.addPredNode(currNode);
 
                         // check sources
                         if (bb.src1.isVirtual()) currNode.useVars(bb.src1);
@@ -260,20 +285,20 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     case Instruction.Jump jp -> {
                         // jumping, add prev and succ label
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(lbls.get(jp.label));
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(lbls.get(jp.label));
                     }
 
                     case Instruction.JumpRegister jr -> {
                         // jumping, only add the previous node to pred
-                        currNode.addPredNodes(instNodes.get(i-1));
+                        currNode.addPredNode(instNodes.get(i-1));
                         // check src, should never be true
                         if (jr.address.isVirtual()) currNode.useVars(jr.address);
                     }
 
                     default -> {
-                        if (i > 0) currNode.predNodes.add(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.succNodes.add(instNodes.get(i+1));
+                        if (i > 0) currNode.addPredNode(instNodes.get(i-1));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1));
                     }
                 }
 
@@ -282,6 +307,9 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         }
 
         private void writeDotGraph(String filename) {
+            /*
+             * dot -Tpng tests/col/CFG.dot -o tests/col/cfg.png
+             */
             StringBuilder dotGraph = new StringBuilder("digraph CFG {\n");
 
             // Function to sanitize node labels
@@ -337,7 +365,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         }
 
         public void Analyze() {
-
+            
         }
 
     }
