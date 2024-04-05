@@ -106,8 +106,8 @@ public class ExprCodeGen extends CodeGen {
 
                 // the returned register should contain the value of var
                 // for array and struct, return return the address of it
-                if (vexp.type instanceof BaseType) {
-                    currSec.emit(vexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                if (vexp.type instanceof BaseType || vexp.type instanceof PointerType) {
+                    currSec.emit(vexp.type == BaseType.CHAR ? OpCode.LB: OpCode.LW, resReg, resReg, 0);
                 }
 
                 yield resReg;

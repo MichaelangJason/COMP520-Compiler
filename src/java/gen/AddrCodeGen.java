@@ -98,13 +98,8 @@ public class AddrCodeGen extends CodeGen {
             }
 
             case ValueAtExpr valatexp -> {
-                Register resReg = (new ExprCodeGen(asmProg)).visit(valatexp.expr);
-
-                // load the address of the pointerType stored to resReg
-                currSec.emit(OpCode.LW, resReg, resReg, 0);
-                
                 // return the address contained in expr of *expr
-                yield resReg;
+                yield (new ExprCodeGen(asmProg)).visit(valatexp.expr);
             }
 
 
