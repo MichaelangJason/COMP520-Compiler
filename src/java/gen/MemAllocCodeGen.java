@@ -77,8 +77,25 @@ public class MemAllocCodeGen extends CodeGen {
                 Label label = Label.create();
                 chrTable.put(strlit.val, label);
 
+                StringBuilder acc = new StringBuilder();
+
+                for (int i = 0; i < strlit.val.length(); i++) {
+                    char c = strlit.val.charAt(i);
+                    acc.append(switch(c) {
+                        case 7 -> "\\a";
+                        case '\b' -> "\\b";
+                        case '\n' -> "\\n";
+                        case '\r' -> "\\r";
+                        case '\t' -> "\\t";
+                        case 0 -> "\\0";
+                        case '\'' -> "\\'";
+                        case '\"' -> "\\\"";
+                        default -> Character.toString(c);
+                    });
+                } 
+
                 dataSection.emit(label);
-                dataSection.emit(new Directive("asciiz \"%s\"".formatted(strlit.val)));
+                dataSection.emit(new Directive("asciiz \"%s\"".formatted(acc.toString())));
                 if (strlit.val.length() % 4 != 0) dataSection.emit(new Directive("align "+ AsmHelper.getPadding(strlit.val.length())));
             }
 
@@ -106,11 +123,6 @@ public class MemAllocCodeGen extends CodeGen {
                 dataSection.emit(new Directive(val));
                 dataSection.emit(new Directive("align 3"));
             }
-
-            // case Block blk -> {
-            //     for (ASTNode c: blk.vds.reversed()) visit(c);
-            //     for (ASTNode c: blk.stmts) visit(c); 
-            // }
 
             default -> {
                 if (n instanceof StructTypeDecl || n instanceof FunProto) break;
