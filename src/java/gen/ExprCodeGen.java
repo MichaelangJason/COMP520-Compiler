@@ -32,7 +32,7 @@ public class ExprCodeGen extends CodeGen {
                 // push arguments onto stack if there is
                 if (!params.isEmpty()) {
                     // reversely push arguments to sp
-                    for (Expr arg: fc.args.reversed()) {
+                    for (Expr arg: fc.args) {
                         currSec.emit(new Comment("[[[Retrieving arg val]]]: "+arg.type.toString()));
                         Register valReg = visit(arg);
                         Type argType = arg.type;
@@ -57,7 +57,7 @@ public class ExprCodeGen extends CodeGen {
                             // for int, pointer type and array type, pass reference
                             currSec.emit(argType == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, Arch.sp, 0);
                         }
-                        currSec.emit(new Comment("[[[Pushing arg]]]: "+arg.type.toString())+" ended");
+                        currSec.emit(new Comment("[[[Arg Pushed]]]: "+arg.type.toString())+" ended");
 
                     }
                 }
@@ -74,10 +74,13 @@ public class ExprCodeGen extends CodeGen {
                 
                 if (returnType != BaseType.VOID) {
                     // depends on the returnType, either store value or address
+
+                    // currSec.emit(returnType == BaseType.CHAR ? OpCode.LB: OpCode.LW, Arch.v0, Arch.sp, 0);
                     switch(returnType) {
-                        case BaseType.INT: currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;
-                        case BaseType.CHAR: currSec.emit(OpCode.LB, Arch.v0, Arch.sp, 0); break;
-                        default: currSec.emit(OpCode.ADDIU, Arch.v0, Arch.sp, 0);
+                        case BaseType.INT -> {currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;}
+                        case PointerType pt -> {currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;}
+                        case BaseType.CHAR -> {currSec.emit(OpCode.LB, Arch.v0, Arch.sp, 0); break;}
+                        default ->  { currSec.emit(OpCode.ADDIU, Arch.v0, Arch.sp, 0); }
                     }
                     
                     // reset sp object to return value
@@ -253,9 +256,9 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case ValueAtExpr valexp -> {
-                // return value differs base on the variable type
-                Register resReg = visit(valexp.expr); // contains the address
-                // load value stored at resReg
+                // return address contained in pointer
+                Register resReg = (new AddrCodeGen(asmProg)).visit(valexp); // contains the address
+                // load value stored at the address contained in pointer
                 currSec.emit(OpCode.LW, resReg, resReg, 0);
 
                 yield resReg;
@@ -298,7 +301,7 @@ public class ExprCodeGen extends CodeGen {
                 Type type = asiexp.type;
                 currSec.emit(new Comment("[[Get VAR Addr]]"));
                 Register varReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
-                currSec.emit(new Comment("[[Get VAL Addr]]"));
+                currSec.emit(new Comment("[[Get VAL]]"));
                 Register valReg = visit(asiexp.rhs);
 
                 currSec.emit(new Comment("[[Start Copy]]"));

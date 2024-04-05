@@ -125,7 +125,7 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.LI, Arch.v0, 9);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
-        // now v0 equals the address of allocated memory, copy to reserved space
+        // now v0 equals the address of allocated memory, save to reserved space
         currSec.emit(OpCode.SW, Arch.v0, Arch.fp, 4);
     }
 

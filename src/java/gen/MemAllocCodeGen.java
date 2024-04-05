@@ -59,8 +59,8 @@ public class MemAllocCodeGen extends CodeGen {
                 int offset = 4 + AsmHelper.paddedSize(fd.returnSize()); // points to the start of return size
                 for (VarDecl vd: fd.params.reversed()) {
                     // fpOffset set to the start of the argument
+                    vd.fpOffset = offset;
                     offset += AsmHelper.paddedSize(vd.getSize());
-                    vd.fpOffset = offset;    
                 }
                 this.fpOffset = -4; // points to return address
 
@@ -107,8 +107,13 @@ public class MemAllocCodeGen extends CodeGen {
                 dataSection.emit(new Directive("align 3"));
             }
 
+            // case Block blk -> {
+            //     for (ASTNode c: blk.vds.reversed()) visit(c);
+            //     for (ASTNode c: blk.stmts) visit(c); 
+            // }
+
             default -> {
-                if (n instanceof StructTypeDecl) break;
+                if (n instanceof StructTypeDecl || n instanceof FunProto) break;
                 for (ASTNode c: n.children()) visit(c);
             }
         }

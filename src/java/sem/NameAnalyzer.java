@@ -175,7 +175,8 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 									return;
 								}
 							}
-
+							
+							((FunProtoSymbol) proto).toBeAssigned.forEach(fp -> fp.fd = fd);
 							scope.put(new FunDeclSymbol(fd));
 						} // needs override equals for pointerType and arrayType
 						else error("[Name Analyzer]FunDecl/FunProto Type Unmatched: "+fd.name);
@@ -212,8 +213,18 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case FunCallExpr f -> {
-				Symbol s = scope.lookup(f.name);
 				// search for an existing FunDeclSymbol
+				Symbol s = scope.lookup(f.name);
+				// if not found then search for a FunProto
+				if (s == null) {
+					s = scope.lookup("proto "+f.name);
+					if (!(s instanceof FunProtoSymbol)) { error("[Name Analyzer]Function Undeclared: "+f.name); break; }
+					((FunProtoSymbol) s).toBeAssigned.add(f);
+					f.type = ((FunProtoSymbol) s).fp.type;
+					for (Expr arg: f.args) visit(arg, prev);
+					break;
+				}
+
 				if (!(s instanceof FunDeclSymbol)) { error("[Name Analyzer]Function Undefined: "+f.name); break; }
 				f.fd = ((FunDeclSymbol) s).fd;
 				for (Expr arg: f.args) visit(arg, prev);
