@@ -303,14 +303,15 @@ public class ExprCodeGen extends CodeGen {
                 Register varReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
                 currSec.emit(new Comment("[[Get VAL]]"));
                 Register valReg = visit(asiexp.rhs);
+                Register tempReg = Virtual.create();
 
                 currSec.emit(new Comment("[[Start Copy]]"));
                 if (type instanceof StructType) {
                     for (int i = 0; i < (type.getSize() / 4); i++) {
                         // load corresponding word to t0
-                        currSec.emit(OpCode.LW, Arch.t0, valReg, 4*i);
+                        currSec.emit(OpCode.LW, tempReg, valReg, 4*i);
                         // store corresponding word to variable
-                        currSec.emit(OpCode.SW, Arch.t0, varReg, 4*i);
+                        currSec.emit(OpCode.SW, tempReg, varReg, 4*i);
                     }
                     
                 } else {

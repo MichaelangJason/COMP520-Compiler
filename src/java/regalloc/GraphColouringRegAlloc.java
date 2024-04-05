@@ -33,9 +33,10 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
         });
 
-        // perform Liveness Analysis
+        // perform Liveness Analysis and compute interference graph
         cfgs.values().stream().forEach((cfg) -> {
             (new LivenessAnalyzer(cfg)).analyze();
+            cfg.IGraph = new InterferenceGraph(cfg);
         });
 
         // we assume that each function has a single corresponding text section
@@ -46,26 +47,26 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         return newProg;
     }
 
-    private class Node {
+    private class CNode {
         public final CFG cfg;
         public final Instruction inst;
-        public final List<Node> predNodes = new ArrayList<>();
-        public final List<Node> succNodes = new ArrayList<>();
+        public final List<CNode> predNodes = new ArrayList<>();
+        public final List<CNode> succNodes = new ArrayList<>();
         public final List<Register.Virtual> use = new ArrayList<>();
         public final List<Register.Virtual> def = new ArrayList<>();
         public List<Register.Virtual> liveIn = new ArrayList<>();
         public List<Register.Virtual> liveOut = new ArrayList<>();
         
-        public Node(Instruction inst, CFG cfg) {
+        public CNode(Instruction inst, CFG cfg) {
             this.inst = inst;
             this.cfg = cfg;
         }
 
-        public void addPredNode(Node node) {
+        public void addPredNode(CNode node) {
             predNodes.add(node);
         }
 
-        public void addSuccNode(Node node) {
+        public void addSuccNode(CNode node) {
             succNodes.add(node);
         }
 
@@ -87,12 +88,13 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
     private class CFG {
         // only deal with instruction, not directive
-        public final List<Node> instNodes = new ArrayList<>();
-        public final HashMap<Label, Node> lbls = new HashMap<>();
+        public final List<CNode> instNodes = new ArrayList<>();
+        public final HashMap<Label, CNode> lbls = new HashMap<>();
         // Maintain a list of Virtual Registers (Variable)
         public final List<Register.Virtual> vars = new ArrayList<>();
-        public final HashMap<Register.Virtual, List<Node>> varDefs = new HashMap<>();
-        public final HashMap<Register.Virtual, List<Node>> varUses = new HashMap<>();
+        public final HashMap<Register.Virtual, List<CNode>> varDefs = new HashMap<>();
+        public final HashMap<Register.Virtual, List<CNode>> varUses = new HashMap<>();
+        public InterferenceGraph IGraph;
 
         public CFG(Section sec) {
             assert sec.type == Section.Type.TEXT;
@@ -104,11 +106,11 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             if (!vars.contains(var)) vars.add(var);
         }
 
-        public void addToVarDefs(Register.Virtual var, Node node) {
+        public void addToVarDefs(Register.Virtual var, CNode node) {
             varDefs.computeIfAbsent(var, v -> new ArrayList<>()).add(node);
         }
 
-        public void addToVarUses(Register.Virtual var, Node node) {
+        public void addToVarUses(Register.Virtual var, CNode node) {
             varUses.computeIfAbsent(var, v -> new ArrayList<>()).add(node);
         }
 
@@ -128,7 +130,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                             if (!(next instanceof Instruction)) continue;
                             // if found, create a new Node for next instruction and add it to hashmap, skip the added instruction
                             else { 
-                                Node node = new Node((Instruction) next, this);
+                                CNode node = new CNode((Instruction) next, this);
                                 instNodes.add(node);
                                 lbls.put(lbl, node); 
                                 i = j; 
@@ -139,7 +141,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                     }
                     case Instruction inst -> {
                         // add to nodes
-                        instNodes.add(new Node(inst, this));
+                        instNodes.add(new CNode(inst, this));
                     }
                     default -> { /* skip others */ }
                 }
@@ -147,7 +149,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
             // second iteration on instNodes, link prec and succ
             for (int i = 0; i < instNodes.size(); i++) {
-                Node currNode = instNodes.get(i);
+                CNode currNode = instNodes.get(i);
                 Instruction inst = currNode.inst;
                 
                 /*
@@ -250,7 +252,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                         
                         // find the node branched to
                         Label precLbl = ub.label;
-                        Node pred = lbls.get(precLbl);
+                        CNode pred = lbls.get(precLbl);
 
                         // add to current's succNodes
                         currNode.addSuccNode(pred);
@@ -268,7 +270,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                         
                         // find the node branched to
                         Label precLbl = bb.label;
-                        Node pred = lbls.get(precLbl);
+                        CNode pred = lbls.get(precLbl);
 
                         // add to current's succNodes
                         currNode.addSuccNode(pred);
@@ -318,11 +320,11 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             .replace(",", "_")
             .replace("-", "minus");
 
-            HashMap<Node, String> dotLbls = new HashMap<>();
+            HashMap<CNode, String> dotLbls = new HashMap<>();
             
             int n = 0;
             // Iterate over all the nodes
-            for (Node node : this.instNodes) {
+            for (CNode node : this.instNodes) {
                 // Sanitize and create a label for the node with the instruction or some unique identifier
                 String nodeLabel = sanitizeLabel.apply("Node_" + n++ + "__" + node.inst.toString());
                 dotLbls.put(node, nodeLabel);
@@ -332,9 +334,9 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             dotGraph.append("\n");
 
             // Iterate over all nodes again to create the edges based on successors
-            for (Node node : this.instNodes) {
+            for (CNode node : this.instNodes) {
                 String nodeLabel = dotLbls.get(node);
-                for (Node succ : node.succNodes) {
+                for (CNode succ : node.succNodes) {
                     String succLabel = dotLbls.get(succ);
                     dotGraph.append("    ").append(nodeLabel).append(" -> ").append(succLabel).append(";\n");
                 }
@@ -366,7 +368,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             boolean changed;
             do {
                 changed = false;
-                for (Node node : graph.instNodes) {
+                for (CNode node : graph.instNodes) {
                     List<Register.Virtual> _liveIn = new ArrayList<>(node.liveIn);
                     List<Register.Virtual> _liveOut = new ArrayList<>(node.liveOut);
 
@@ -380,7 +382,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
                     // LiveOut(n) = Union LiveIn(s forall s in succ(n))
                     node.liveOut = new ArrayList<>();
-                    for (Node succ : node.succNodes) {
+                    for (CNode succ : node.succNodes) {
                         for (Register.Virtual var: succ.liveIn) {
                             if (!node.liveOut.contains(var)) node.liveOut.add(var);
                         }
@@ -397,5 +399,66 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         
         }
 
+    }
+
+    private class InterferenceGraph {
+
+        public final CFG cfg;
+        public final HashMap<Register.Virtual, INode> graph = new HashMap<>();
+
+        public InterferenceGraph(CFG cfg) {
+            this.cfg = cfg;
+            buildGraph();
+        }
+
+        private void buildGraph() {
+            // create nodes for all register
+            cfg.vars.forEach(v -> this.graph.put(v, new INode(v)));
+
+            cfg.instNodes.forEach(node -> {
+                node.liveIn.forEach((v) -> {
+                    INode inode = this.graph.get(v);
+                    inode.checkListInterference(node.liveIn);
+                });
+
+                node.liveOut.forEach((v) -> {
+                    INode inode = this.graph.get(v);
+                    inode.checkListInterference(node.liveOut);
+                });
+            });
+        }
+
+        private class INode {
+            public final Register.Virtual var;
+            public final List<INode> interfered = new ArrayList<>();
+            public int colourIdx; // to be filled by Chitin's Algo
+
+            public INode(Register.Virtual var) {
+                this.var = var;
+            }
+
+            public void checkListInterference(List<Register.Virtual> vars) {
+                vars.forEach(this::checkInterference);
+            }
+
+            private void checkInterference(Register.Virtual var) {
+                if (var == this.var) return;
+                INode node = InterferenceGraph.this.graph.get(var);
+                if (!interfered.contains(node)) interfered.add(node);
+            }
+        }
+    }
+
+    private class ChaitinColouring {
+
+        /**
+         * Info
+         * can only use $t0-9 and $s0-s7 -> a total of 18 register (18-coloring max?)
+         * 
+         */
+        public static void Fill(InterferenceGraph graph) {
+
+        }
+        
     }
 }

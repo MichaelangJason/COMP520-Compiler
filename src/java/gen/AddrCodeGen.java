@@ -2,12 +2,10 @@ package gen;
 
 import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
-import ast.BaseType;
 import ast.Expr;
 import ast.FieldAccessExpr;
 import ast.StructType;
 import ast.StructTypeDecl;
-import ast.Type;
 import ast.ValueAtExpr;
 import ast.VarDecl;
 import ast.VarExpr;
