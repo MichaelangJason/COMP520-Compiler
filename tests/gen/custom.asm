@@ -7,25 +7,25 @@ label_0_:
 # Allocated labels for virtual registers
 label_12_v1:
 .space 4
-label_19_v2:
+label_19_v3:
 .space 4
-label_21_v4:
+label_21_v5:
 .space 4
-label_39_v7:
+label_39_v8:
 .space 4
-label_29_v6:
+label_29_v7:
 .space 4
 label_13_v0:
 .space 4
-label_25_v5:
+label_25_v6:
 .space 4
-label_35_v8:
+label_35_v9:
 .space 4
-label_38_v10:
+label_38_v11:
 .space 4
-label_18_v3:
+label_18_v4:
 .space 4
-label_36_v9:
+label_36_v10:
 .space 4
 
 .text
@@ -62,49 +62,49 @@ lw $t4,0($t4)
 sw $t5,0($t4)
 # Copy End
 label_2_while:
-# Original instruction: addiu v2,$fp,-8
+# Original instruction: addiu v3,$fp,-8
 addiu $t5,$fp,-8
-la $t0,label_19_v2
+la $t0,label_19_v3
 sw $t5,0($t0)
-# Original instruction: lw v2,0(v2)
-la $t4,label_19_v2
+# Original instruction: lw v3,0(v3)
+la $t4,label_19_v3
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_19_v2
+la $t0,label_19_v3
 sw $t4,0($t0)
-# Original instruction: li v3,0
+# Original instruction: li v4,0
 li $t5,0
-la $t0,label_18_v3
+la $t0,label_18_v4
 sw $t5,0($t0)
-# Original instruction: slt v4,v3,v2
-la $t5,label_18_v3
+# Original instruction: slt v5,v4,v3
+la $t5,label_18_v4
 lw $t5,0($t5)
-la $t4,label_19_v2
+la $t4,label_19_v3
 lw $t4,0($t4)
 slt $t3,$t5,$t4
-la $t0,label_21_v4
+la $t0,label_21_v5
 sw $t3,0($t0)
-# Original instruction: beq v4,$zero,label_3_end
-la $t5,label_21_v4
+# Original instruction: beq v5,$zero,label_3_end
+la $t5,label_21_v5
 lw $t5,0($t5)
 beq $t5,$zero,label_3_end
 # Execute print_i
 # [[[Retrieving arg val]]]: INT
-# Original instruction: addiu v5,$fp,-8
+# Original instruction: addiu v6,$fp,-8
 addiu $t5,$fp,-8
-la $t0,label_25_v5
+la $t0,label_25_v6
 sw $t5,0($t0)
-# Original instruction: lw v5,0(v5)
-la $t4,label_25_v5
+# Original instruction: lw v6,0(v6)
+la $t4,label_25_v6
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_25_v5
+la $t0,label_25_v6
 sw $t4,0($t0)
 # [[[Reserving Stack size for Args]]]
 # Original instruction: addiu $sp,$sp,-4
 addiu $sp,$sp,-4
-# Original instruction: sw v5,0($sp)
-la $t5,label_25_v5
+# Original instruction: sw v6,0($sp)
+la $t5,label_25_v6
 lw $t5,0($t5)
 sw $t5,0($sp)
 # # [[[Arg Pushed]]]: INT ended
@@ -115,21 +115,21 @@ addiu $sp,$sp,4
 # Return From print_i
 # Execute print_c
 # [[[Retrieving arg val]]]: CHAR
-# Original instruction: la v6,label_0_
+# Original instruction: la v7,label_0_
 la $t5,label_0_
-la $t0,label_29_v6
+la $t0,label_29_v7
 sw $t5,0($t0)
-# Original instruction: lb v6,0(v6)
-la $t4,label_29_v6
+# Original instruction: lb v7,0(v7)
+la $t4,label_29_v7
 lw $t4,0($t4)
 lb $t4,0($t4)
-la $t0,label_29_v6
+la $t0,label_29_v7
 sw $t4,0($t0)
 # [[[Reserving Stack size for Args]]]
 # Original instruction: addiu $sp,$sp,-4
 addiu $sp,$sp,-4
-# Original instruction: sb v6,0($sp)
-la $t5,label_29_v6
+# Original instruction: sb v7,0($sp)
+la $t5,label_29_v7
 lw $t5,0($t5)
 sb $t5,0($sp)
 # # [[[Arg Pushed]]]: CHAR ended
@@ -140,38 +140,38 @@ addiu $sp,$sp,4
 # Return From print_c
 # [[[Assign]]]: INT
 # [[Get VAR Addr]]
-# Original instruction: addiu v7,$fp,-8
-addiu $t5,$fp,-8
-la $t0,label_39_v7
-sw $t5,0($t0)
-# [[Get VAL]]
 # Original instruction: addiu v8,$fp,-8
 addiu $t5,$fp,-8
-la $t0,label_35_v8
+la $t0,label_39_v8
 sw $t5,0($t0)
-# Original instruction: lw v8,0(v8)
-la $t4,label_35_v8
+# [[Get VAL]]
+# Original instruction: addiu v9,$fp,-8
+addiu $t5,$fp,-8
+la $t0,label_35_v9
+sw $t5,0($t0)
+# Original instruction: lw v9,0(v9)
+la $t4,label_35_v9
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_35_v8
+la $t0,label_35_v9
 sw $t4,0($t0)
-# Original instruction: li v9,1
+# Original instruction: li v10,1
 li $t5,1
-la $t0,label_36_v9
+la $t0,label_36_v10
 sw $t5,0($t0)
-# Original instruction: sub v10,v8,v9
-la $t5,label_35_v8
+# Original instruction: sub v11,v9,v10
+la $t5,label_35_v9
 lw $t5,0($t5)
-la $t4,label_36_v9
+la $t4,label_36_v10
 lw $t4,0($t4)
 sub $t3,$t5,$t4
-la $t0,label_38_v10
+la $t0,label_38_v11
 sw $t3,0($t0)
 # [[Start Copy]]
-# Original instruction: sw v10,0(v7)
-la $t5,label_38_v10
+# Original instruction: sw v11,0(v8)
+la $t5,label_38_v11
 lw $t5,0($t5)
-la $t4,label_39_v7
+la $t4,label_39_v8
 lw $t4,0($t4)
 sw $t5,0($t4)
 # Copy End

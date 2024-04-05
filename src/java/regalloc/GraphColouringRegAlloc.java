@@ -1,19 +1,25 @@
 package regalloc;
 
 import java.util.List;
+import java.util.Stack;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import gen.asm.AssemblyItem;
 import gen.asm.AssemblyPass;
 import gen.asm.AssemblyProgram;
+import gen.asm.Directive;
 import gen.asm.Instruction;
 import gen.asm.Label;
+import gen.asm.OpCode;
 import gen.asm.Register;
 import gen.asm.AssemblyProgram.Section;
+import gen.asm.Comment;
 
 public class GraphColouringRegAlloc implements AssemblyPass {
 
@@ -33,18 +39,103 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
         });
 
-        // perform Liveness Analysis and compute interference graph
+        // perform Liveness Analysis, compute interference graph, and do colouring
         cfgs.values().stream().forEach((cfg) -> {
             (new LivenessAnalyzer(cfg)).analyze();
-            cfg.IGraph = new InterferenceGraph(cfg);
+            cfg.interGraph = new InterferenceGraph(cfg);
+            (new ChaitinColouring(cfg.interGraph)).apply();
         });
 
         // we assume that each function has a single corresponding text section
-        
+        program.sections.forEach((section) -> {
+            if (section.type == AssemblyProgram.Section.Type.DATA)
+                newProg.emitSection(section);
+            else {
+                assert (section.type == AssemblyProgram.Section.Type.TEXT);
+
+                // get all virtual Register in this Text section
+                CFG currCFG = cfgs.get(section);
+                HashMap<Register.Virtual, Register.Arch> mapArch = currCFG.maps;
+                List<Register.Virtual> spilledReg = new ArrayList<>(currCFG.vars);
+                spilledReg.removeAll(mapArch.keySet());
+                HashMap<Register.Virtual, Label> mapSpilled = new HashMap<>();
+                
+                // allocate one label for each spilled register in a new data section
+                if (!spilledReg.isEmpty()) {
+                    Section dataSec = newProg.newSection(Section.Type.DATA);
+                    spilledReg.forEach(reg -> {
+                        Label lbl = Label.create(reg.toString());
+                        mapSpilled.put(reg, lbl);
+                        dataSec.emit(lbl);
+                        dataSec.emit(new Directive("space " + 4));
+                    });    
+                }
+
+                final Section newSection = newProg.newSection(Section.Type.TEXT);
+                section.items.forEach((item) -> {
+                    switch (item) {
+                        case Comment comment -> newSection.emit(comment);
+                        case Label label -> newSection.emit(label);
+                        case Directive directive -> newSection.emit(directive);
+                        case Instruction insn -> {
+                            // never used pop and push registers, so not implemented
+                            emitInstructionWithoutVirtualRegister(insn, mapArch, mapSpilled, newSection);
+                        }
+                    }
+                });
+
+
+            }
+        });
 
         // To complete
 
         return newProg;
+    }
+
+    private void emitInstructionWithoutVirtualRegister(Instruction inst, HashMap<Register.Virtual, Register.Arch> mapArch, HashMap<Register.Virtual, Label> mapSpilled, Section section) {
+        section.emit("Original instruction: " + inst);
+
+        HashMap<Register, Register> vrToAr = new HashMap<>(mapArch);
+        Register.Arch[] tempRegs = {Register.Arch.v1, Register.Arch.a1, Register.Arch.a2, Register.Arch.a3}; // 4 temporaries should be more than enough, these are not used in CodeGeneration
+        final Stack<Register.Arch> freeTempRegs = new Stack<>();
+        freeTempRegs.addAll(Arrays.asList(tempRegs));
+
+        /*
+         * case 1: no vr
+         * case 2: vr but already mapped to ar
+         * case 3: spilled vr
+         */
+
+         // add spilled register to vrToAr with a temp reg
+         mapSpilled.keySet().forEach(reg -> {
+            Register.Arch tmp = freeTempRegs.pop();
+            vrToAr.put(reg, tmp);
+         });
+
+         // load values for spilled  
+         inst.uses().forEach(reg -> {
+            if (mapSpilled.keySet().contains(reg)) {
+                Register tmp = vrToAr.get(reg);
+                Label label = mapSpilled.get(reg);
+                section.emit(OpCode.LA, tmp, label);
+                section.emit(OpCode.LW, tmp, tmp, 0);
+            }
+         });
+
+         section.emit(inst.rebuild(vrToAr));
+
+         if (inst.def() != null) {
+            // a spilled vr is the destination
+            if (mapSpilled.keySet().contains(inst.def())) {
+                Register tmpVal = vrToAr.get(inst.def());
+                Register tmpAddr = freeTempRegs.remove(0);
+                Label label = mapSpilled.get(inst.def());
+
+                section.emit(OpCode.LA, tmpAddr, label);
+                section.emit(OpCode.SW, tmpVal, tmpAddr, 0);
+            }
+         }
     }
 
     private class CNode {
@@ -63,10 +154,12 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         }
 
         public void addPredNode(CNode node) {
+            assert node != null;
             predNodes.add(node);
         }
 
         public void addSuccNode(CNode node) {
+            assert node != null;
             succNodes.add(node);
         }
 
@@ -94,7 +187,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         public final List<Register.Virtual> vars = new ArrayList<>();
         public final HashMap<Register.Virtual, List<CNode>> varDefs = new HashMap<>();
         public final HashMap<Register.Virtual, List<CNode>> varUses = new HashMap<>();
-        public InterferenceGraph IGraph;
+        public InterferenceGraph interGraph;
+        public final HashMap<Register.Virtual, Register.Arch> maps = new HashMap<>();
 
         public CFG(Section sec) {
             assert sec.type == Section.Type.TEXT;
@@ -285,7 +379,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                     case Instruction.Jump jp -> {
                         // jumping, add prev and succ label
                         if (i > 0) currNode.addPredNode(instNodes.get(i-1));
-                        if (i < instNodes.size() - 1) currNode.addSuccNode(lbls.get(jp.label));
+                        // if (jp.opcode == OpCode.JAL) break;
+                        if (i < instNodes.size() - 1 && lbls.get(jp.label) != null) currNode.addSuccNode(lbls.get(jp.label));
                     }
 
                     case Instruction.JumpRegister jr -> {
@@ -401,19 +496,42 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
     }
 
+    public class INode {
+        public final InterferenceGraph g;
+        public final Register.Virtual var;
+        public final List<INode> interfered = new ArrayList<>();
+        public Register.Arch colour = null; // to be filled by Chitin's Algo
+
+        public INode(Register.Virtual var, InterferenceGraph graph) {
+            this.var = var;
+            this.g = graph;
+        }
+
+        public void checkListInterference(List<Register.Virtual> vars) {
+            vars.forEach(this::checkInterference);
+        }
+
+        private void checkInterference(Register.Virtual var) {
+            if (var == this.var) return;
+            INode node = g.graph.get(var);
+            if (!interfered.contains(node)) interfered.add(node);
+        }
+    }
     private class InterferenceGraph {
 
         public final CFG cfg;
         public final HashMap<Register.Virtual, INode> graph = new HashMap<>();
+        int k = 0;
 
         public InterferenceGraph(CFG cfg) {
             this.cfg = cfg;
+            cfg.interGraph = this;
             buildGraph();
         }
 
         private void buildGraph() {
             // create nodes for all register
-            cfg.vars.forEach(v -> this.graph.put(v, new INode(v)));
+            cfg.vars.forEach(v -> this.graph.put(v, new INode(v, this)));
 
             cfg.instNodes.forEach(node -> {
                 node.liveIn.forEach((v) -> {
@@ -428,37 +546,90 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             });
         }
 
-        private class INode {
-            public final Register.Virtual var;
-            public final List<INode> interfered = new ArrayList<>();
-            public int colourIdx; // to be filled by Chitin's Algo
-
-            public INode(Register.Virtual var) {
-                this.var = var;
-            }
-
-            public void checkListInterference(List<Register.Virtual> vars) {
-                vars.forEach(this::checkInterference);
-            }
-
-            private void checkInterference(Register.Virtual var) {
-                if (var == this.var) return;
-                INode node = InterferenceGraph.this.graph.get(var);
-                if (!interfered.contains(node)) interfered.add(node);
-            }
-        }
     }
 
     private class ChaitinColouring {
+        InterferenceGraph graph;
+        List<INode> stack = new ArrayList<>();
+        List<INode> remaining = new ArrayList<>();
+        List<INode> spilled = new ArrayList<>();
+        List<Register.Arch> availableReg = Stream.of(
+            Register.Arch.t0, Register.Arch.t1, Register.Arch.t2, Register.Arch.t3, Register.Arch.t4,
+            Register.Arch.t5, Register.Arch.t6, Register.Arch.t7, Register.Arch.t8, Register.Arch.t9,
+            Register.Arch.s0, Register.Arch.s1, Register.Arch.s2, Register.Arch.s3, Register.Arch.s4,
+            Register.Arch.s5, Register.Arch.s6, Register.Arch.s7
+        ).toList();
 
         /**
          * Info
-         * can only use $t0-9 and $s0-s7 -> a total of 18 register (18-coloring max?)
-         * 
+         * can only use $t0-9 and $s0-s7 -> a total of 18 register (k = 18)
          */
-        public static void Fill(InterferenceGraph graph) {
-
+        public ChaitinColouring(InterferenceGraph graph) {
+            this.graph = graph;
         }
-        
+
+        public void apply() {
+            putStack();
+            fill();
+        }
+
+        // very naive implementation, does not consider performance at all
+        private void putStack() {
+            remaining = new ArrayList<>(graph.graph.values());
+
+            do {
+                INode toRemove = null;
+
+                do {
+                    toRemove = null;
+    
+                    for (INode node: remaining) {
+                        List<INode> neighbours = new ArrayList<>(node.interfered);
+                        neighbours.removeAll(stack);
+                        neighbours.removeAll(spilled);
+                        if (neighbours.size() >= 18) continue;
+    
+                        toRemove = node; // found a node to be pushed into stack and remove from remaining
+                    }
+                    
+                    if (toRemove == null) break;
+                    stack.add(toRemove);
+                    remaining.remove(toRemove);
+                } while (toRemove != null);
+    
+                if (remaining.isEmpty()) break;
+                // choose one from the remaining and mark them spilled
+                INode node = remaining.stream().max((INode n1, INode n2) -> n1.interfered.size() - n2.interfered.size()).get();
+                if (node == null) throw new IllegalStateException();
+                spilled.add(node); // add to spilled, and recheck
+
+            } while (!remaining.isEmpty());
+        }
+
+        private void fill() {
+            List<Register.Arch> usedColours = new ArrayList<>();
+            stack.forEach((INode node) -> {
+                // get available colours
+                List<Register.Arch> colours = new ArrayList<>(availableReg);
+                // get coloring of neighbours
+                List<Register.Arch> otherColours = node.interfered.stream().map(n -> n.colour).toList();
+                colours.removeAll(otherColours);
+
+                // assign node with the first colour available, guaranteed to have at least one colour available
+                node.colour = colours.get(0);
+                // put back into maps
+                this.graph.cfg.maps.put(node.var, node.colour);
+                if(!usedColours.contains(node.colour)) usedColours.add(node.colour);
+
+            });
+            
+            graph.k = usedColours.size();
+
+            spilled.forEach((INode node) -> {
+                this.graph.cfg.maps.put(node.var, null);
+            });
+        }
     }
+
+    
 }
