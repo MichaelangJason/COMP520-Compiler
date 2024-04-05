@@ -25,6 +25,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
 
         AssemblyProgram newProg = new AssemblyProgram();
 
+        // compute CFG
         program.sections.forEach((section) -> {
             if (section.type != Section.Type.TEXT) return;
             CFG cfg = new CFG(section);
@@ -32,7 +33,11 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
         });
 
-        // create dot graph for
+        // perform Liveness Analysis
+        cfgs.values().stream().forEach((cfg) -> {
+            (new LivenessAnalyzer(cfg)).analyze();
+        });
+
         // we assume that each function has a single corresponding text section
         
 
@@ -48,8 +53,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         public final List<Node> succNodes = new ArrayList<>();
         public final List<Register.Virtual> use = new ArrayList<>();
         public final List<Register.Virtual> def = new ArrayList<>();
-        public final List<Node> liveIn = new ArrayList<>();
-        public final List<Node> liveOut = new ArrayList<>();
+        public List<Register.Virtual> liveIn = new ArrayList<>();
+        public List<Register.Virtual> liveOut = new ArrayList<>();
         
         public Node(Instruction inst, CFG cfg) {
             this.inst = inst;
@@ -77,14 +82,6 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             def.add((Register.Virtual) reg);
             cfg.addVars((Register.Virtual) reg);
             cfg.addToVarDefs((Register.Virtual) reg, this);
-        }
-
-        public void liveInVars(Node node) {
-            liveIn.add(node);
-        }
-
-        public void liveOutVars(Node node) {
-            liveOut.add(node);
         }
     }
 
@@ -360,12 +357,44 @@ public class GraphColouringRegAlloc implements AssemblyPass {
         private final CFG graph;
 
 
-        public LivenessAnalyzer(Section sec) {
-            this.graph = new CFG(sec);
+        public LivenessAnalyzer(CFG cfg) {
+            this.graph = cfg;
         }
 
-        public void Analyze() {
-            
+        // fixed-point algorithm
+        public void analyze() {
+            boolean changed;
+            do {
+                changed = false;
+                for (Node node : graph.instNodes) {
+                    List<Register.Virtual> _liveIn = new ArrayList<>(node.liveIn);
+                    List<Register.Virtual> _liveOut = new ArrayList<>(node.liveOut);
+
+                    // LiveIn(n) = use(n) U (LiveOut(n) - def(n))
+                    node.liveIn = new ArrayList<>(node.use);
+                    List<Register.Virtual> outMinusDef = new ArrayList<>(node.liveOut);
+                    outMinusDef.removeAll(node.def);
+                    for (Register.Virtual var: outMinusDef) {
+                        if (!node.liveIn.contains(var)) node.liveIn.add(var);
+                    }
+
+                    // LiveOut(n) = Union LiveIn(s forall s in succ(n))
+                    node.liveOut = new ArrayList<>();
+                    for (Node succ : node.succNodes) {
+                        for (Register.Virtual var: succ.liveIn) {
+                            if (!node.liveOut.contains(var)) node.liveOut.add(var);
+                        }
+                    }
+                    
+                    if (!changed) {
+                        boolean liveInDiff = !(_liveIn.size() == node.liveIn.size() && _liveIn.containsAll(node.liveIn) && node.liveIn.containsAll(_liveIn));
+                        boolean liveOutDiff = !(_liveOut.size() == node.liveOut.size() && _liveOut.containsAll(node.liveOut) && node.liveOut.containsAll(_liveOut));
+                        // If anything has changed, update the node's in and out lists
+                        changed = liveInDiff || liveOutDiff;    
+                    }
+                }
+            } while (changed);
+        
         }
 
     }
