@@ -126,7 +126,17 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case ChrLiteral chrlit -> {
-                String val = Character.toString(chrlit.val);
+                String val = switch(chrlit.val) {
+                    case 7 -> "\\a";
+                    case '\b' -> "\\b";
+                    case '\n' -> "\\n";
+                    case '\r' -> "\\r";
+                    case '\t' -> "\\t";
+                    case 0 -> "\\0";
+                    case '\'' -> "\\'";
+                    case '\"' -> "\\\"";
+                    default -> Character.toString(chrlit.val);
+                };
                 if (!MemAllocCodeGen.chrTable.containsKey(val)) yield null;
                 // retrieve from MemAlloc hashmap
                 Label label = MemAllocCodeGen.chrTable.get(val);

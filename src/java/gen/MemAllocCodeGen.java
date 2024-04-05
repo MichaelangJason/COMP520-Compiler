@@ -83,15 +83,27 @@ public class MemAllocCodeGen extends CodeGen {
             }
 
             case ChrLiteral chrlit -> {
-                String val = Character.toString(chrlit.val);
+                String val = switch(chrlit.val) {
+                    case 7 -> "\\a";
+                    case '\b' -> "\\b";
+                    case '\n' -> "\\n";
+                    case '\r' -> "\\r";
+                    case '\t' -> "\\t";
+                    case 0 -> "\\0";
+                    case '\'' -> "\\'";
+                    case '\"' -> "\\\"";
+                    default -> Character.toString(chrlit.val);
+                };
                 // break if already existed
                 if (chrTable.containsKey(val)) break;
                 // static allocation
-                Label label = Label.create(val);
+                Label label = Label.create();
                 chrTable.put(val, label);
 
                 dataSection.emit(label);
-                dataSection.emit(new Directive("byte '%s'".formatted(val)));
+                
+                val = "byte '%s'".formatted(val);
+                dataSection.emit(new Directive(val));
                 dataSection.emit(new Directive("align 3"));
             }
 
