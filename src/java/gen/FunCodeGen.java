@@ -38,6 +38,7 @@ public class FunCodeGen extends CodeGen {
 
         currSec.emit(OpCode.ADDIU, Arch.sp, Arch.fp, fd.fpOffset);
 
+        currSec.emit(OpCode.PUSH_REGISTERS);
         
         // 2) emit the body of the function
         // supports builtin functions
@@ -53,6 +54,8 @@ public class FunCodeGen extends CodeGen {
                 scd.visit(fd.block, null);
             }
         }
+
+        currSec.emit(OpCode.POP_REGISTERS);
 
         currSec.emit(OpCode.ADDIU, Arch.sp, Arch.fp, -4);
 

@@ -1,6 +1,7 @@
 package regalloc;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -9,6 +10,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import gen.asm.AssemblyItem;
 import gen.asm.AssemblyPass;
@@ -78,8 +80,30 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                         case Label label -> newSection.emit(label);
                         case Directive directive -> newSection.emit(directive);
                         case Instruction insn -> {
-                            // never used pop and push registers, so not implemented
-                            emitInstructionWithoutVirtualRegister(insn, mapArch, mapSpilled, newSection);
+                            if (insn == Instruction.Nullary.pushRegisters) {
+                                newSection.emit("Original instruction: pushRegisters");
+                                Set<Register> set = new HashSet<>(mapArch.values());
+                                List<Register> list = new ArrayList<>(set);
+
+                                for (Register reg: list) {
+                                    // push to stack
+                                    newSection.emit(OpCode.ADDIU, Register.Arch.sp, Register.Arch.sp, -4);
+                                    newSection.emit(OpCode.SW, reg, Register.Arch.sp, 0);
+                                }
+
+                            } else if (insn == Instruction.Nullary.popRegisters) {
+                                newSection.emit("Original instruction: popRegisters");
+                                Set<Register> set = new HashSet<>(mapArch.values());
+                                List<Register> list = new ArrayList<>(set).reversed();
+
+                                for (Register reg: list) {
+                                    // retrieve from stack
+                                    newSection.emit(OpCode.LW, reg, Register.Arch.sp, 0);
+                                    newSection.emit(OpCode.ADDIU, Register.Arch.sp, Register.Arch.sp, 4);
+                                }
+                            } else {
+                                emitInstructionWithoutVirtualRegister(insn, mapArch, mapSpilled, newSection);
+                            }
                         }
                     }
                 });
@@ -380,7 +404,8 @@ public class GraphColouringRegAlloc implements AssemblyPass {
                         // jumping, add prev and succ label
                         if (i > 0) currNode.addPredNode(instNodes.get(i-1));
                         // if (jp.opcode == OpCode.JAL) break;
-                        if (i < instNodes.size() - 1 && lbls.get(jp.label) != null) currNode.addSuccNode(lbls.get(jp.label));
+                        if (lbls.get(jp.label) != null) currNode.addSuccNode(lbls.get(jp.label));
+                        if (i < instNodes.size() - 1) currNode.addSuccNode(instNodes.get(i+1));
                     }
 
                     case Instruction.JumpRegister jr -> {
@@ -630,6 +655,4 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             });
         }
     }
-
-    
 }

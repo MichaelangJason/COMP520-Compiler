@@ -29,6 +29,8 @@ public class ExprCodeGen extends CodeGen {
                 Type returnType = fc.fd.type;
                 List<VarDecl> params = fc.fd.params;
                 currSec.emit(new Comment("Execute "+fc.name));
+                Register tmpReg = Virtual.create();
+
                 // push arguments onto stack if there is
                 if (!params.isEmpty()) {
                     // reversely push arguments to sp
@@ -48,9 +50,9 @@ public class ExprCodeGen extends CodeGen {
                             // assume valReg contains the address of struct
                             for (int i = 0; i < argSize / 4; i++) {
                                 // load data contained in memory location to v0
-                                currSec.emit(OpCode.LW, Arch.v0, valReg, 4*i);
+                                currSec.emit(OpCode.LW, tmpReg, valReg, 4*i);
                                 // copy data contained in t0 to memory location of sp
-                                currSec.emit(OpCode.SW, Arch.v0, Arch.sp, 4*i);
+                                currSec.emit(OpCode.SW, tmpReg, Arch.sp, 4*i);
                             }
 
                         } else {
@@ -75,12 +77,12 @@ public class ExprCodeGen extends CodeGen {
                 if (returnType != BaseType.VOID) {
                     // depends on the returnType, either store value or address
 
-                    // currSec.emit(returnType == BaseType.CHAR ? OpCode.LB: OpCode.LW, Arch.v0, Arch.sp, 0);
+                    // currSec.emit(returnType == BaseType.CHAR ? OpCode.LB: OpCode.LW, tmpReg, Arch.sp, 0);
                     switch(returnType) {
-                        case BaseType.INT -> {currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;}
-                        case PointerType pt -> {currSec.emit(OpCode.LW, Arch.v0, Arch.sp, 0); break;}
-                        case BaseType.CHAR -> {currSec.emit(OpCode.LB, Arch.v0, Arch.sp, 0); break;}
-                        default ->  { currSec.emit(OpCode.ADDIU, Arch.v0, Arch.sp, 0); }
+                        case BaseType.INT -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
+                        case PointerType pt -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
+                        case BaseType.CHAR -> {currSec.emit(OpCode.LB, tmpReg, Arch.sp, 0); break;}
+                        default ->  { currSec.emit(OpCode.ADDIU, tmpReg, Arch.sp, 0); }
                     }
                     
                     // reset sp object to return value
@@ -95,7 +97,7 @@ public class ExprCodeGen extends CodeGen {
                 currSec.emit(new Comment("Return From "+fc.name));
 
                 // should contains the value or the address of 
-                yield Arch.v0;
+                yield tmpReg;
             }
 
             case VarExpr vexp -> {
@@ -212,8 +214,9 @@ public class ExprCodeGen extends CodeGen {
 
                     case EQ:
                         currSec.emit(OpCode.XOR, resReg, lhsReg, rhsReg);
-                        currSec.emit(OpCode.LI, Arch.t0, 1); // load1 for ternaryArithmetic
-                        currSec.emit(OpCode.SLTU, resReg, resReg, Arch.t0);
+                        Register tmpReg = Virtual.create();
+                        currSec.emit(OpCode.LI, tmpReg, 1); // load1 for ternaryArithmetic
+                        currSec.emit(OpCode.SLTU, resReg, resReg, tmpReg);
                         break;
 
                     case OR:

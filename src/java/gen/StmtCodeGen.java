@@ -7,6 +7,7 @@ import gen.asm.OpCode;
 import gen.asm.Register;
 import gen.asm.AssemblyProgram.Section;
 import gen.asm.Register.Arch;
+import gen.asm.Register.Virtual;
 
 public class StmtCodeGen extends CodeGen {
     Section currSec;
@@ -85,8 +86,9 @@ public class StmtCodeGen extends CodeGen {
                     if (returnType instanceof StructType) {
                         // copy word by word onto stack
                         for (int i = 0; i < returnType.getSize() / 4; i++) {
-                            currSec.emit(OpCode.LW, Arch.t0, varReg, 4*i);
-                            currSec.emit(OpCode.SW, Arch.t0, Arch.fp, 4*(i+1));
+                            Register tmpReg = Virtual.create();
+                            currSec.emit(OpCode.LW, tmpReg, varReg, 4*i);
+                            currSec.emit(OpCode.SW, tmpReg, Arch.fp, 4*(i+1));
                         }
                     } else {
                         // copy
