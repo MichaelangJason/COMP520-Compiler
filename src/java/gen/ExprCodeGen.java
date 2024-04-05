@@ -33,10 +33,12 @@ public class ExprCodeGen extends CodeGen {
                 if (!params.isEmpty()) {
                     // reversely push arguments to sp
                     for (Expr arg: fc.args.reversed()) {
+                        currSec.emit(new Comment("[[[Retrieving arg val]]]: "+arg.type.toString()));
                         Register valReg = visit(arg);
                         Type argType = arg.type;
                         int argSize = AsmHelper.paddedSize(arg.type.getSize());
 
+                        currSec.emit(new Comment("[[[Reserving Stack size for Args]]]"));
                         // reserve stack size
                         currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -argSize);
                         // copy value to stack
@@ -55,12 +57,15 @@ public class ExprCodeGen extends CodeGen {
                             // for int, pointer type and array type, pass reference
                             currSec.emit(argType == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, Arch.sp, 0);
                         }
+                        currSec.emit(new Comment("[[[Pushing arg]]]: "+arg.type.toString())+" ended");
+
                     }
                 }
 
                 // reserve place for return value
                 if (returnType != BaseType.VOID) {
                     int returnSize = returnType.getSize();
+                    currSec.emit(new Comment("[[[Reserver Stack size for Return VAL]]]: " + returnSize));
                     currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnSize: 4));
                 }
 
@@ -253,6 +258,7 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case ArrayAccessExpr arrexp -> {
+                currSec.emit(new Comment("[ArrAccess]"));
                 // get address of the head of the array
                 Register resReg = (new AddrCodeGen(asmProg)).visit(arrexp);
 
@@ -260,6 +266,7 @@ public class ExprCodeGen extends CodeGen {
                 if (arrexp.type instanceof BaseType) {
                     currSec.emit(arrexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
                 }
+                currSec.emit(new Comment("[ArrAccess End]"));
 
                 yield resReg;
             }
@@ -277,10 +284,14 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case Assign asiexp -> {
+                currSec.emit(new Comment("[[[Assign]]]: "+asiexp.type.toString()));
                 Type type = asiexp.type;
+                currSec.emit(new Comment("[[Get VAR Addr]]"));
                 Register varReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
+                currSec.emit(new Comment("[[Get VAL Addr]]"));
                 Register valReg = visit(asiexp.rhs);
 
+                currSec.emit(new Comment("[[Start Copy]]"));
                 if (type instanceof StructType) {
                     for (int i = 0; i < (type.getSize() / 4); i++) {
                         // load corresponding word to t0
@@ -293,7 +304,7 @@ public class ExprCodeGen extends CodeGen {
                     // for char, also pass the address of the label to it
                     currSec.emit(type == BaseType.CHAR ? OpCode.SB : OpCode.SW, valReg, varReg, 0);
                 }
-
+                currSec.emit(new Comment("Copy End"));
                 yield varReg;
             }
 

@@ -36,6 +36,8 @@ public class FunCodeGen extends CodeGen {
         currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); //
         currSec.emit(OpCode.SW, Arch.ra, Arch.sp, 0); // push return address on the stack
 
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.fp, fd.fpOffset);
+
         
         // 2) emit the body of the function
         // supports builtin functions
@@ -51,6 +53,8 @@ public class FunCodeGen extends CodeGen {
                 scd.visit(fd.block, null);
             }
         }
+
+        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.fp, -4);
 
         // 3) emit the epilog
         currSec.emit(OpCode.LW, Arch.ra, Arch.sp, 0); // restore return address
@@ -116,13 +120,13 @@ public class FunCodeGen extends CodeGen {
 
     private void emit_mcmalloc(Section currSec) {
         // get number of bytes to allocate
-        currSec.emit(OpCode.LW, Arch.a0, Arch.sp, 8);
+        currSec.emit(OpCode.LW, Arch.a0, Arch.fp, 8);
         // load syscall
         currSec.emit(OpCode.LI, Arch.v0, 9);
         // perform syscall
         currSec.emit(OpCode.SYSCALL);
         // now v0 equals the address of allocated memory, copy to reserved space
-        currSec.emit(OpCode.SB, Arch.v0, Arch.fp, 4);
+        currSec.emit(OpCode.SW, Arch.v0, Arch.fp, 4);
     }
 
 }

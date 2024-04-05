@@ -67,6 +67,7 @@ public class MemAllocCodeGen extends CodeGen {
                 this.global = false;
                 visit(fd.block);
                 this.global = true;
+                fd.fpOffset = this.fpOffset; // set fp
             }
 
             case StrLiteral strlit -> {
