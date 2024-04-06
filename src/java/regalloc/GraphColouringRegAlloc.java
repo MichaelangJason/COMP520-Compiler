@@ -38,7 +38,7 @@ public class GraphColouringRegAlloc implements AssemblyPass {
             if (section.type != Section.Type.TEXT) return;
             CFG cfg = new CFG(section);
             cfgs.put(section, cfg);
-            cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
+            // cfg.writeDotGraph("tests/col/"+((Label) section.items.get(0)).name+".dot");
         });
 
         // perform Liveness Analysis, compute interference graph, and do colouring
