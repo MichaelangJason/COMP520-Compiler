@@ -82,6 +82,17 @@ Our language only supports single inheritance: a class can only inherit from at 
 Please that is illegal to inherit recursively: a class cannot have itself as one of its ancestor.
 Any parent class must be declared fully first before it can be inherited from. 
 
+#### 5.1. Overriding methods
+
+Subclasses can override methods from their ancestor.
+If a class has a method with the same name as a method in an ancestor class, then the ancestor's method is override.
+When overriding, the type signature of the override method must match exactly that of the overriding method (i.e same return type, same number of arguments, and same arguments' types).
+
+#### 5.2. Fields
+
+Note that only functions can be overridden, and it is forbidden to override a field in a subclass if it already exists in an ancestor class.
+In other words, a subclass is not allowed to have a field with the same name as one in an ancestor class.
+
 ### 6. Class Passing by Reference:
 
 To simplify the implementation, similar to Java and unlike C++, we assume that class objects are simply references that point to the memory heap. 
@@ -125,8 +136,9 @@ class VirtualCourse extends Course {
 
 int main() {
     class Course course;
-    course = new class Course();
     class Course vcourse;
+    
+    course = new class Course();
     vcourse = (class Course) new class VirtualCourse();
 
     course.whereToAttend();
@@ -141,7 +153,6 @@ So, the code produces the following output:
 Not determined! The course will be held virtually or in person!
 The course is going to be held on Zoom!
 ```
-Note that only functions can be overridden, and it is forbidden to override a field in a subclass if it already exists in an ancestor class.
 
 ### 8. Typecasting and Subtyping:
 
@@ -247,8 +258,10 @@ We will not mark based on the AST printer; however, modifying your AST printer t
 ## 8. Name Analysis
 
 A class can have multiple fields and method declarations inside its scope and inherits from another class.
-The body of a class cannot contain nested classes, or redeclared fields and methods with the same name.
+The body of a class cannot redeclare fields and methods with the same name.
 Class declarations are made in the global scope.
+
+ 
 
 
 ## 9. Type Analysis
@@ -257,10 +270,10 @@ You must make sure each declared class has a unique name in your type analyzer.
 Then, you must ensure that when facing a class function call, or field access, the function or field exists in the corresponding class declaration or its parents.
 This note is the essential part of object-oriented programming language type checking, in which you must have to check all ancestors of a class while analyzing field accesses or function calls.
 
-The typing rules have been updated based and can be accessed [here](./typing-rules/rules.pdf).
+The typing rules have been updated and can be accessed [here](./typing-rules/rules.pdf).
 All new or updated rules are written in red.
-The `<:` operator in typing inference rule indicates subtyping, meaning that T<sub>1</sub> corresponding class is a descendant of T<sub>2</sub> corresponding one.
-As before, you are responsible for extending `sem.TypeCheckVisitor` to follow newly-added rules.
+The `<:` operator indicates subtyping: if `T <: U`, it means that `T` is either the class `U` or a descendant of `U`.
+You should update your `sem.TypeCheckVisitor` to take into account all the newly-added/updated rules.
 
 
 
