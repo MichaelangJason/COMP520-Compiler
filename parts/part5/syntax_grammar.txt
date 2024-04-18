@@ -5,6 +5,7 @@
 # +  one or more
 # |  alternative
 
+//TODO
 program    ::= (include)* (classdecl | structdecl | vardecl | fundecl | funproto)* EOF # Part V
 
 include    ::= "#include" STRING_LITERAL
@@ -17,14 +18,16 @@ fundecl    ::= type IDENT "(" params ")" block       # function declaration
 
 funproto   ::= type IDENT "(" params ")" ";"         # function prototype
 
+//TODO
 classdecl  ::= classtype ["extends" IDENT] "{" (vardecl)* (fundecl)* "}" # Part V
 
 
-  
+// TODO
 type       ::= ("int" | "char" | "void" | structtype | classtype) ("*")* # Part V
 
 structtype ::= "struct" IDENT
 
+//TODO
 classtype  ::= "class" IDENT # Part V
 
 params     ::= [ type IDENT ("[" INT_LITERAL "]")* ("," type IDENT ("[" INT_LITERAL "]")*)* ]
@@ -50,7 +53,7 @@ exp        ::= "(" exp ")"
              | instanceFuncall | newInstance # Part V
 
 
-
+//TODO
 newInstance     ::= "new" classtype"()"           # Part V - new class object instantiation
 instanceFuncall ::= exp "." funcall				  # Part V - call to an instance method
 
