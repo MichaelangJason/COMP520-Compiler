@@ -428,9 +428,14 @@ public class Tokeniser extends CompilerPass {
                 if ((temp = matchKeyword.apply("char", Token.Category.CHAR)) != null) return temp;
                 // continue
                 if ((temp = matchKeyword.apply("continue", Token.Category.CONTINUE)) != null) return temp;
+                // class
+                if ((temp = matchKeyword.apply("class", Token.Category.CLASS)) != null) return temp;
                 break;
-            case 'e': // else
+            case 'e': 
+                // else
                 if ((temp = matchKeyword.apply("else", Token.Category.ELSE)) != null) return temp;
+                // extends
+                if ((temp = matchKeyword.apply("extends", Token.Category.EXTENDS)) != null) return temp;
                 break;
             case 'w': // while
                 if ((temp = matchKeyword.apply("while", Token.Category.WHILE)) != null) return temp;
@@ -446,6 +451,9 @@ public class Tokeniser extends CompilerPass {
                 break;
             case 'b': // break
                 if ((temp = matchKeyword.apply("break", Token.Category.BREAK)) != null) return temp;
+                break;
+            case 'n': // new
+                if ((temp = matchKeyword.apply("new", Token.Category.NEW)) != null) return temp;
                 break;
             default:
                 return null;
