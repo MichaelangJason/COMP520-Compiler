@@ -137,7 +137,7 @@ public class Parser extends CompilerPass {
 
         List<Decl> decls = new ArrayList<>();
 
-        while (accept(Category.STRUCT, Category.INT, Category.CHAR, Category.VOID, Category.CLASS)) {
+        while (accept(types)) {
             if (token.category == Category.STRUCT &&
                     lookAhead(1).category == Category.IDENTIFIER &&
                     lookAhead(2).category == Category.LBRA) {
@@ -329,7 +329,7 @@ public class Parser extends CompilerPass {
      */
     private List<VarDecl> parseParams() {
         List<VarDecl> vds = new ArrayList<>();
-        if (!accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) return vds;
+        if (!accept(types)) return vds;
 
 
         Type vartype = parseType();
@@ -370,7 +370,7 @@ public class Parser extends CompilerPass {
         
         List<VarDecl> vds = new ArrayList<>();
         // (vardecl) *
-        while (accept(Category.INT, Category.CHAR, Category.VOID, Category.STRUCT)) {
+        while (accept(types)) {
             vds.add(parseVardecl());
         }
 
@@ -497,7 +497,7 @@ public class Parser extends CompilerPass {
 
             //TODO newInstance AST Node
             Expr expr = new NewInstanceExpr(classType);
-            
+
             return parseExpPrime(expr, prc);
         } else if (prc <= 7 && accept(Category.MINUS, Category.PLUS)) {
             // unary
@@ -695,7 +695,7 @@ public class Parser extends CompilerPass {
      * ExpLpar ::= "(" exp ")" | typecast
      */
     private Expr parseExpLpar(int prc) {
-        Category[] types = new Category[]{Category.INT, Category.CHAR, Category.VOID, Category.STRUCT};
+        // Category[] types = new Category[]{Category.INT, Category.CHAR, Category.VOID, Category.STRUCT, Category.CLASS};
         
         Expr expr;
         if (Stream.of(types).anyMatch(s -> s == lookAhead(1).category)) {
