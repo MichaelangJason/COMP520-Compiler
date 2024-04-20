@@ -248,6 +248,43 @@ public class ASTPrinter {
                 writer.print(")");
             }
 
+            case ClassType ct -> {
+                writer.print("ClassType(");
+                writer.print(ct.name);
+                writer.print(")");
+            }
+
+            case ClassTypeDecl cd -> {
+                writer.print("ClassType(");
+                visit(cd.type);
+
+                for (VarDecl vd: cd.vardecls) {
+                    writer.print(",");
+                    visit(vd);
+                }
+
+                for (FunDecl fd: cd.fundecls) {
+                    writer.print(",");
+                    visit(fd);
+                }
+
+                writer.print(")");
+            }
+
+            case InstanceFunCallExpr ifc -> {
+                writer.print("InstanceFunCallExpr(");
+                visit(ifc.classObj);
+                writer.print(",");
+                visit(ifc.fc);
+                writer.print(")");
+            }
+
+            case NewInstanceExpr ni -> {
+                writer.print("NewInstanceExpr(");
+                visit(ni.classType);
+                writer.print(")");
+            }
+
             default -> {
                 // should never reach here
             }

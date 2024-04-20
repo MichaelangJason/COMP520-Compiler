@@ -8,6 +8,7 @@ public final class NewInstanceExpr extends Expr {
 
     public NewInstanceExpr(Type type) {
         this.classType = type;
+        this.type = type;
     }
 
     @Override
