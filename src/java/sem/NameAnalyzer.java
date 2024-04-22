@@ -134,17 +134,18 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			// FunDecl should appears at the top scope at this phase
 			case FunDecl fd -> {
+				//TODO PartV difference
 				Symbol s = scope.lookupCurrent(fd.name);
 				
 				// found a declaration
-				if (s instanceof FunDeclSymbol || s instanceof VarSymbol) error("[Name Analyzer]FunDecl exists: " + fd.name);
+				if (s instanceof FunDeclSymbol || s instanceof VarSymbol) error("[Name Analyzer] FunDecl exists: " + fd.name);
 				else {
 					// if s is another type of symbol, then check for existing prototype
 					Symbol proto = scope.lookupCurrent("proto "+fd.name);
 					
 					// either proto_[fd.name] is null or other symbol type, put it in
 					if (proto instanceof VarSymbol) {
-						error("[Name Analyzer]FunDecl conflict"); break;
+						error("[Name Analyzer] FunDecl conflict"); break;
 					}
 
 					if (!(proto instanceof FunProtoSymbol )) {
@@ -152,7 +153,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						Scope oldScope = scope;
 						scope = new Scope(oldScope);
 						visit(fd.type, fd);
-						for (ASTNode n: fd.params) visit(n, fd);
+						for (VarDecl vd: fd.params) visit(vd, fd);
 						scope = oldScope;
 						scope.put(new FunDeclSymbol(fd));
 					}
@@ -277,10 +278,108 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				t.std = ((StructDeclSymbol) s).std;
 			}
 
+			//TODO
+			
+			case ClassTypeDecl ctd -> {
+				/*
+				 * 2 cases:
+				 * 1. inherit from a parent type
+				 * 2. does not inherit from a parent type
+				 */
+				
+				// check if existed
+				Symbol s = scope.lookupCurrent("class "+ctd.name);
+
+				if (s instanceof ClassTypeDeclSymbol) { error("[Name Analyzer] ClassTypeDecl already exists: "+ ctd.name); break; }
+				else {
+					// check parent, must be declared before
+					ClassTypeDeclSymbol parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+ctd.parentClass);
+
+					if (ctd.parentClass != null && parent == null) {
+						error("[Name Analyzer] ClassTypeDecl parent not declared yet: "+ ctd.name + "->" + ctd.parentClass); break;
+					}
+
+					if (ctd.parentClass != null) ctd.parentDecl = parent.ctd;
+
+					/*
+					 * parent must be declared and checked, create a new scope under the current scope and check overlap method and field 
+					 */
+					Scope scp = new Scope(scope);
+					scp.put(new ClassTypeDeclSymbol(ctd));
+					while (parent != null) {
+						ClassTypeDecl parentCtd = parent.ctd;
+
+						// add vardecl to scope
+						for (VarDecl vd: parentCtd.vardecls) {
+							Scope oldScope = scope;
+							scope = scp;
+							visit(vd.type, prev);
+							scope = oldScope;
+							scp.put(new VarSymbol(vd));
+						}
+
+						// add fundecl to scope
+						for (FunDecl fd: parentCtd.fundecls) {
+							scp.put(new FunDeclSymbol(fd));
+						}
+
+						// update parent
+						parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClass);
+					}
+
+					
+					/*
+					 * check current vd and fd, only check if overlapped
+					 */
+					for (VarDecl vd: ctd.vardecls) {
+						if (scp.lookupCurrent(vd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClass + ": " + vd.name); return;}
+
+						scp.put(new VarSymbol(vd));
+					}
+
+					for (FunDecl fd: ctd.fundecls) {
+						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClass + ": " + fd.name); return;}
+						
+						scp.put(new FunDeclSymbol(fd));
+					}
+
+					/*
+					 * now visit fd params and block to check
+					 */
+					Scope oldScope = scope;
+					for (FunDecl fd: ctd.fundecls) {
+						scope = new Scope(scp);
+						for (ASTNode child: fd.children()) visit(child, fd);
+						scope = oldScope;
+					}
+					
+					scope.put(new ClassTypeDeclSymbol(ctd));
+				}
+				
+			}
+
+			case InstanceFunCallExpr ifc -> {
+				// do nothing, type analyzer will handle this part
+			}
+
+			case ClassType ct -> {
+				// only check if existed
+				Symbol s = scope.lookup("class "+ct.name);
+				if (s == null) {error("[Name Analyzer] ClassType Undefined: "+ct.name); break;}
+				ct.ctd = ((ClassTypeDeclSymbol) s).ctd; 
+			}
+
+			case NewInstanceExpr ni -> {
+				// only check if type already declared
+				visit(ni.classType, prev);
+			}
+
+
 			case Return rtn -> {
 				rtn.fd = (FunDecl) prev;
 				if (rtn.expr != null) visit(rtn.expr, rtn);
 			}
+
 			// for other nodes, visit their children, should be in correct order
 			default -> {
 				for (ASTNode n: node.children()) visit(n, prev);

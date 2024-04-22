@@ -213,11 +213,13 @@ public class Parser extends CompilerPass {
      */
     private Decl parseClassDecl() {
         ClassType classType = (ClassType) parseType();
+        String parentClass = null;
 
         // check extends
         if (accept(Category.EXTENDS)) {
             expect(Category.EXTENDS);
-            expect(Category.IDENTIFIER);
+            Token tk = expect(Category.IDENTIFIER);
+            parentClass = tk.data;
         }
 
         expect(Category.LBRA);
@@ -243,8 +245,9 @@ public class Parser extends CompilerPass {
     
         expect(Category.RBRA);
         
-        //TODO classDecl AST Node
-        return new ClassTypeDecl(classType, vds, fds);
+        ClassTypeDecl ctd = new ClassTypeDecl(classType, vds, fds, parentClass);
+        for (FunDecl fd: fds) fd.ctd = ctd;
+        return ctd;
     }
 
     /**

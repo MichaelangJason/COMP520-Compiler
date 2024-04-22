@@ -30,6 +30,7 @@ public class Scope {
 			case VarSymbol v -> symbolTable.put(v.name, v);
 			case FunProtoSymbol fp -> symbolTable.put("proto "+fp.name, fp);
 			case StructDeclSymbol std -> symbolTable.put("struct "+std.name, std);
+			case ClassTypeDeclSymbol ctd -> symbolTable.put("class "+ctd.name, ctd);
 			default -> throw new IllegalStateException();
 		}
 	}

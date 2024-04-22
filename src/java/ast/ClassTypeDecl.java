@@ -4,15 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ClassTypeDecl extends Decl {
-    public ClassTypeDecl parent;
+    public ClassTypeDecl parentDecl;
+    public String parentClass = null;
     public final List<VarDecl> vardecls;
     public final List<FunDecl> fundecls;
     
-    public ClassTypeDecl(ClassType type, List<VarDecl> varDecls, List<FunDecl> funDecls) {
+    public ClassTypeDecl(ClassType type, List<VarDecl> varDecls, List<FunDecl> funDecls, String parentClass) {
         this.type = type;
         this.name = type.name;
         this.vardecls = varDecls;
         this.fundecls = funDecls;
+        this.parentClass = parentClass;
     }
 
     public List<ASTNode> children() {

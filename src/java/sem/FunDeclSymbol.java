@@ -7,7 +7,7 @@ public class FunDeclSymbol extends Symbol {
     FunDecl fd;
     
     public FunDeclSymbol(FunDecl fd) {
-        super(fd.name);
+        super(fd.ctd == null ? fd.name : fd.ctd.name + " " + fd.name);
         this.fd = fd;
     }
 }

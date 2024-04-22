@@ -8,7 +8,7 @@ import gen.AsmHelper;
 public final class ClassType implements Type {
 
     public final String name;
-    // public ClassTypeDecl std;
+    public ClassTypeDecl ctd;
 
     public ClassType(String name) {
         this.name = name;
