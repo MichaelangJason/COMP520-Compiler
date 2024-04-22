@@ -10,7 +10,7 @@ class B extends A {
 }
 
 class C extends B {
-    class A afield;
+    class B afield;
     int c;
     void run() {}
 }
@@ -19,10 +19,20 @@ class C extends B {
 void main() {
     class A a;
     class B b;
+    class C c;
+
+    a = new class A();
+    b = new class B();
+    c = new class C();
 
     a.test();
     b.test();
     b.start();
+    c.bfield = new class B();
+    c.bfield.field = new class B();
+    c.bfield.field.start();
+    
+
     print_i(b.b);
     print_i(a.test());
 }

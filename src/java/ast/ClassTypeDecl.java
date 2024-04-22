@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ClassTypeDecl extends Decl {
+    public ClassTypeDecl parent;
     public final List<VarDecl> vardecls;
     public final List<FunDecl> fundecls;
     
