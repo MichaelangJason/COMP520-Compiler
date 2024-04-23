@@ -39,25 +39,26 @@ void main() {
 
 
     // success cases
-    d.test();
-    a = (class A) new class C();
-    c.test();
-    c.bfield.field = (class B) new class C();
-    c.bfield.field = (class B) c.run();
-    c.bfield.field.test();
-    c.bfield.field;
-    c.test();
-    c.start(b, a).test();
+    // d.test();
+    // a = (class A) new class C();
+    // c.test();
+    // c.bfield.field = (class B) new class C();
+    // c.bfield.field = (class B) c.run();
+    // c.bfield.field.test();
+    // c.bfield.field;
+    // c.test();
+    // c.start(b, a).test();
 
-    c = (class C) c;
-    print_i(b.test());
+    // c = (class C) c;
+    // print_i(b.test());
 
-    if (a.test()) {
+    // if (a.test()) {
 
-    } else {
+    // } else {
 
-    }
+    // }
 
     // fail cases
+    c.exists();
     // c = (class C) new class A(); // typecast to descendent
 }

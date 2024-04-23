@@ -358,7 +358,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				}
 
 				if (fd == null) {
-					error("[Type Analyzer] instance funcall" + fc.name + "undefined in " + classType);
+					error("[Type Analyzer] instance funcall \"" + fc.name + " \"undefined in " + classType);
 					yield BaseType.UNKNOWN;
 				}
 
