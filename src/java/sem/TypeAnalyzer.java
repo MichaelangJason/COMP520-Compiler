@@ -1,5 +1,6 @@
 package sem;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ast.*;
@@ -49,6 +50,10 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			case StructTypeDecl std -> {
 				// to complete
 				yield std.type; // to change
+			}
+
+			case ClassTypeDecl ctd -> {
+				yield ctd.type; // to chagne
 			}
 
 			case FunCallExpr fc -> {
@@ -155,20 +160,38 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				} else {
 					Type fieldT = visit(exp);
 
-					if (!(fieldT instanceof StructType)) {
-						error("[Type Analyzer] FieldAccess not StructType: "+fieldT);
+					// check type
+					if (!(fieldT instanceof StructType || fieldT instanceof ClassType)) {
+						error("[Type Analyzer] FieldAccess not StructType|ClassType: "+fieldT);
 						yield BaseType.UNKNOWN;
 					}
-
-					if (((StructType) fieldT).std == null) {
+					
+					// check valid type
+					if (fieldT instanceof StructType && ((StructType) fieldT).std == null) {
 						error("[Type Analyzer] FieldAccess StructType Undefined");
 						yield BaseType.UNKNOWN;
+					} else 
+					if (fieldT instanceof ClassType && ((ClassType) fieldT).ctd == null) {
+						error("[Type Analyzer] FieldAccess ClassType Undefined");
+						yield BaseType.UNKNOWN;
 					}
 
-					List<VarDecl> fields = ((StructType) fieldT).std.vardecls;
+					List<VarDecl> fields = fieldT instanceof StructType ? ((StructType) fieldT).std.vardecls : ((ClassType) fieldT).ctd.vardecls;
+
+					// add all ancestor's fields
+					if (fieldT instanceof ClassType) {
+						ClassTypeDecl parent = ((ClassType) fieldT).ctd.parentDecl;
+						while (parent != null) {
+							fields.addAll(parent.vardecls);
+							parent = parent.parentDecl;
+						}
+					}
+
 					// find the corresponding field
+
+
 					for (VarDecl vd: fields) {
-						if (vd.name.equals(fldaccexpr.name)) {
+						if (vd.name.equals(fldaccexpr.fieldName)) {
 							fldaccexpr.type = vd.type;
 							yield fldaccexpr.type;
 						}
@@ -279,7 +302,60 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					error("[Type Analyzer] Return type unmatched: "+declReturnType+","+returnType);
 					yield BaseType.UNKNOWN;
 				}
+			}
 
+			case NewInstanceExpr ni -> {
+				ni.type = ni.classType;
+				yield ni.type;
+			}
+
+			case InstanceFunCallExpr ifc -> {
+				Type classType = visit(ifc.classObj);
+
+				if (!(classType instanceof ClassType) || ((ClassType) classType).ctd == null) {
+					error("[Type Analyzer] instance funcall class undefined");
+					yield BaseType.UNKNOWN;
+				}
+
+				// check if defined
+				ClassTypeDecl ctd = ((ClassType) classType).ctd;
+				FunCallExpr fc = ifc.fc;
+				FunDecl fd = null;
+
+				// collect all the fundecl declared
+				List<FunDecl> allFds = new ArrayList<>();
+				allFds.addAll(ctd.fundecls);
+				
+				ClassTypeDecl parent = ctd.parentDecl;
+				while (parent != null) {
+					allFds.addAll(parent.fundecls);
+					parent = parent.parentDecl;
+				}
+
+				for (FunDecl cfd: allFds) {
+					if (cfd.name.equals(ifc.fc.name)) fd = cfd;
+				}
+
+				// check params
+				List<VarDecl> declParams = fd.params;
+				List<Expr> args = fc.args;
+
+				if (args.size() != declParams.size()) {
+					error("[Type Analyzer] number of args unmatched: "+fc.name);
+					yield BaseType.UNKNOWN;
+				}
+				else {
+					for (int i = 0; i < args.size(); i++) {
+						Type argT = visit(args.get(i));
+						Type declT = visit(declParams.get(i));
+						if (!argT.equals(declT)) error("[Type Analyzer] args type unmatched "+fc.name);
+						yield BaseType.UNKNOWN;
+					}
+				}
+
+				fc.type = fd.type;
+
+				yield fc.type;
 			}
 			
 			default -> { 

@@ -226,7 +226,10 @@ public class Parser extends CompilerPass {
 
         // (vardecl)*
         List<VarDecl> vds = new ArrayList<>();
-        while (accept(types) && lookAhead(2).category != Category.LPAR) 
+        while (
+            accept(Category.INT, Category.CHAR, Category.VOID) && lookAhead(2).category != Category.LPAR ||
+            accept(Category.STRUCT, Category.CLASS) && lookAhead(3).category != Category.LPAR
+            ) 
         {
             vds.add(parseVardecl());
         }

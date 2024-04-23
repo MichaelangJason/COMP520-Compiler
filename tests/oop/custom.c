@@ -1,16 +1,16 @@
 class A {
     int a;
-    void test() {}
+    int test() {}
 }
 
 class B extends A {
     class B field;
     int b;
-    void start() {}
+    class A start() {}
 }
 
 class C extends B {
-    class B afield;
+    class B bfield;
     int c;
     void run() {}
 }
@@ -25,14 +25,16 @@ void main() {
     b = new class B();
     c = new class C();
 
-    a.test();
-    b.test();
-    b.start();
-    c.bfield = new class B();
-    c.bfield.field = new class B();
-    c.bfield.field.start();
-    
+    // a.test();
+    // b.test();
+    // b.start();
+    // c.bfield = new class B();
+    // c.bfield.field = new class B();
+    // c.bfield.field.test();
+    // c.bfield.field;
+    // c.test();
+    c.start().test();
 
     print_i(b.b);
-    print_i(a.test());
+    print_i(c.b);
 }

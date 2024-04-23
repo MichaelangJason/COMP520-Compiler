@@ -5,7 +5,7 @@ import java.util.List;
 
 public final class ClassTypeDecl extends Decl {
     public ClassTypeDecl parentDecl;
-    public String parentClass = null;
+    public String parentClassName = null;
     public final List<VarDecl> vardecls;
     public final List<FunDecl> fundecls;
     
@@ -14,7 +14,7 @@ public final class ClassTypeDecl extends Decl {
         this.name = type.name;
         this.vardecls = varDecls;
         this.fundecls = funDecls;
-        this.parentClass = parentClass;
+        this.parentClassName = parentClass;
     }
 
     public List<ASTNode> children() {

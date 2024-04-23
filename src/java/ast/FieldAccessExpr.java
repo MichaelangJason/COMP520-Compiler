@@ -5,11 +5,11 @@ import java.util.List;
 
 public final class FieldAccessExpr extends Expr {
     public final Expr structName;
-    public final String name;
+    public final String fieldName;
 
-    public FieldAccessExpr(Expr structExpr, String name) {
+    public FieldAccessExpr(Expr structExpr, String fieldName) {
         this.structName = structExpr;
-        this.name = name;
+        this.fieldName = fieldName;
     }
 
     @Override

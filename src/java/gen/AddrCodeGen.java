@@ -71,14 +71,14 @@ public class AddrCodeGen extends CodeGen {
 
                 // get type of fldExp, check if existed
                 StructTypeDecl std = ((StructType) fldexp.structName.type).std;
-                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.name)))) throw new IllegalArgumentException();
+                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.fieldName)))) throw new IllegalArgumentException();
  
                 
                 // get the offset to the target field
                 int offset = 0;
                 
                 for (VarDecl vd: std.vardecls) {
-                    if (vd.name.equals(fldexp.name)) break;
+                    if (vd.name.equals(fldexp.fieldName)) break;
                     offset += AsmHelper.paddedSize(vd.getSize());
                 }
             

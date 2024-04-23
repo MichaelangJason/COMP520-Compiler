@@ -73,14 +73,18 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				scope.put(new FunDeclSymbol(decl_read_i));
 				scope.put(new FunDeclSymbol(decl_mcmalloc));
 
-				for (Decl d: p.decls) visit(d, p);
+				for (Decl d: p.decls) {
+					visit(d, p);
+				}
 			}
 
 			case Block b -> {
 				Scope oldScope = scope;
 				scope = new Scope(oldScope);
 
-				for (ASTNode n: b.children()) visit(n, prev);
+				for (ASTNode n: b.children()) {
+					visit(n, prev);
+				}
 
 				scope = oldScope; // restore oldScope
 			}
@@ -186,7 +190,9 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 				Scope oldScope = scope;
 				scope = new Scope(oldScope);
-				for (ASTNode n: fd.children()) visit(n, fd); // this will add VarDecl for inner scope and then use it for child block
+				for (ASTNode n: fd.children()) {
+					visit(n, fd);
+				} // this will add VarDecl for inner scope and then use it for child block
 				scope = oldScope; // restore oldScope
 				
 			}
@@ -293,13 +299,13 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				if (s instanceof ClassTypeDeclSymbol) { error("[Name Analyzer] ClassTypeDecl already exists: "+ ctd.name); break; }
 				else {
 					// check parent, must be declared before
-					ClassTypeDeclSymbol parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+ctd.parentClass);
+					ClassTypeDeclSymbol parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+ctd.parentClassName);
 
-					if (ctd.parentClass != null && parent == null) {
-						error("[Name Analyzer] ClassTypeDecl parent not declared yet: "+ ctd.name + "->" + ctd.parentClass); break;
+					if (ctd.parentClassName != null && parent == null) {
+						error("[Name Analyzer] ClassTypeDecl parent not declared yet: "+ ctd.name + "->" + ctd.parentClassName); break;
 					}
 
-					if (ctd.parentClass != null) ctd.parentDecl = parent.ctd;
+					if (ctd.parentClassName != null) ctd.parentDecl = parent.ctd;
 
 					/*
 					 * parent must be declared and checked, create a new scope under the current scope and check overlap method and field 
@@ -311,10 +317,10 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 						// add vardecl to scope
 						for (VarDecl vd: parentCtd.vardecls) {
-							Scope oldScope = scope;
-							scope = scp;
-							visit(vd.type, prev);
-							scope = oldScope;
+							// Scope oldScope = scope;
+							// scope = scp;
+							// visit(vd.type, prev);
+							// scope = oldScope;
 							scp.put(new VarSymbol(vd));
 						}
 
@@ -324,29 +330,33 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						}
 
 						// update parent
-						parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClass);
+						parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClassName);
 					}
 
 					
 					/*
 					 * check current vd and fd, only check if overlapped
 					 */
+					Scope oldScope = scope;
+					scope = scp;
 					for (VarDecl vd: ctd.vardecls) {
-						if (scp.lookupCurrent(vd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClass + ": " + vd.name); return;}
+						if (scp.lookupCurrent(vd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClassName + ": " + vd.name); return;}
 
+						visit(vd.type, prev);
 						scp.put(new VarSymbol(vd));
 					}
 
 					for (FunDecl fd: ctd.fundecls) {
-						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClass + ": " + fd.name); return;}
+						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClassName + ": " + fd.name); return;}
 						
+						visit(fd.type, prev);
 						scp.put(new FunDeclSymbol(fd));
 					}
+					scope = oldScope;
 
 					/*
 					 * now visit fd params and block to check
 					 */
-					Scope oldScope = scope;
 					for (FunDecl fd: ctd.fundecls) {
 						scope = new Scope(scp);
 						for (ASTNode child: fd.children()) visit(child, fd);
@@ -360,6 +370,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			case InstanceFunCallExpr ifc -> {
 				// do nothing, type analyzer will handle this part
+				if (ifc.classObj instanceof VarExpr || ifc.classObj instanceof FieldAccessExpr || ifc.classObj instanceof InstanceFunCallExpr) visit(ifc.classObj, prev); // special case 1
 			}
 
 			case ClassType ct -> {
