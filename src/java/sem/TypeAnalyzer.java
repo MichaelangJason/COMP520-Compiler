@@ -231,7 +231,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					Type subtype2 = ((PointerType) castToType).type;
 
 					if (!subtype1.equals(subtype2)) {
-						error("[Type Analyzer] TypeCast Error1");
+						error("[Type Analyzer] Typecast Error1");
 					} else {
 						tpcast.type = new PointerType(subtype1);
 					}
@@ -249,7 +249,13 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 							tpcast.type = castTo;
 							break;
 						} else {
-							if (castFrom.ctd.parentDecl == null) break;
+							if (castFrom.ctd == null) {
+								error("[Type Analyzer] Typecast ClassType Error");
+								break;
+							} else if (castFrom.ctd.parentDecl == null) {
+								error("[Type Analyzer] Typecast ClassType Unmatched: " + castTo + " <- " + castFrom);
+								break;
+							}
 							castFrom = (ClassType) castFrom.ctd.parentDecl.type;
 						}
 					}
@@ -264,19 +270,19 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				
 				if (!(assi.lhs instanceof VarExpr || assi.lhs instanceof FieldAccessExpr || assi.lhs instanceof ArrayAccessExpr || assi.lhs instanceof ValueAtExpr
 				)) {
-					error("[Type Analyzer]Assignment no lvalue");
+					error("[Type Analyzer] Assignment no lvalue");
 					yield assi.type;
 				}
 
 				Type lhsT = visit(assi.lhs);
 				if (lhsT == BaseType.VOID || lhsT instanceof ArrayType) {
-					error("[Type Analyzer]Assignment unaccepted type");
+					error("[Type Analyzer] Assignment unaccepted type");
 					yield assi.type;
 				}
 
 				Type rhsT = visit(assi.rhs);
 				if (!lhsT.equals(rhsT)) {
-					error("[Type Analyzer]Assignment Type Unmatched: "+lhsT+","+rhsT);
+					error("[Type Analyzer] Assignment Type Unmatched: "+lhsT+" <-> "+rhsT);
 					yield assi.type;
 				}
 

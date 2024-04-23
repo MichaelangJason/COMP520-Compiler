@@ -347,7 +347,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					}
 
 					for (FunDecl fd: ctd.fundecls) {
-						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClassName + ": " + fd.name); return;}
+						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl already declared: "+ ctd.name +": " + fd.name); return;}
 						
 						visit(fd.type, prev);
 						scp.put(new FunDeclSymbol(fd));
