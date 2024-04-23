@@ -28,7 +28,7 @@ public final class ClassType implements Type {
     public int getSize() {
         // ClassType must be padded
         // return std.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
-        return 0;
+        return 4;
     }
 
     @Override

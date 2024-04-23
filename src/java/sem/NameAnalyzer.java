@@ -225,7 +225,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 				// if not found then search for a FunProto
 				if (s == null) {
 					s = scope.lookup("proto "+f.name);
-					if (!(s instanceof FunProtoSymbol)) { error("[Name Analyzer]Function Undeclared: "+f.name); break; }
+					if (!(s instanceof FunProtoSymbol)) { error("[Name Analyzer] Function Undeclared: "+f.name); break; }
 					((FunProtoSymbol) s).toBeAssigned.add(f);
 					f.type = ((FunProtoSymbol) s).fp.type;
 					for (Expr arg: f.args) visit(arg, prev);
@@ -426,7 +426,10 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			case InstanceFunCallExpr ifc -> {
 				// do nothing, type analyzer will handle this part
-				if (ifc.classObj instanceof VarExpr || ifc.classObj instanceof FieldAccessExpr || ifc.classObj instanceof InstanceFunCallExpr) visit(ifc.classObj, prev); // special case 1
+				if (ifc.classObj instanceof VarExpr || ifc.classObj instanceof FieldAccessExpr || ifc.classObj instanceof InstanceFunCallExpr) {
+					visit(ifc.classObj, prev);
+					ifc.fc.args.forEach(n -> visit(n, prev));
+				} // special cases
 			}
 
 			case ClassType ct -> {

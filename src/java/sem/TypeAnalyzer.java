@@ -354,7 +354,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				}
 
 				for (FunDecl cfd: allFds) {
-					if (cfd.name.equals(ifc.fc.name)) fd = cfd;
+					if (cfd.name.equals(ifc.fc.name)) {fd = cfd; break;}
 				}
 
 				// check params
@@ -369,11 +369,14 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					for (int i = 0; i < args.size(); i++) {
 						Type argT = visit(args.get(i));
 						Type declT = visit(declParams.get(i));
-						if (!argT.equals(declT)) error("[Type Analyzer] args type unmatched "+fc.name);
-						yield BaseType.UNKNOWN;
+						if (!argT.equals(declT)) {
+							error("[Type Analyzer] args type unmatched "+fc.name);
+							yield BaseType.UNKNOWN;
+						}
 					}
 				}
 
+				fc.fd = fd;
 				fc.type = fd.type;
 
 				yield fc.type;
