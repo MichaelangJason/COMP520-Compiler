@@ -312,11 +312,18 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					 */
 					Scope scp = new Scope(scope);
 					scp.put(new ClassTypeDeclSymbol(ctd));
+
+					List<ClassTypeDecl> parentList = new ArrayList<>();
 					while (parent != null) {
 						ClassTypeDecl parentCtd = parent.ctd;
+						parentList.add(parentCtd);
+						parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClassName);
+					}
 
+					// keep the latest override
+					for (ClassTypeDecl pctd: parentList.reversed()) {
 						// add vardecl to scope
-						for (VarDecl vd: parentCtd.vardecls) {
+						for (VarDecl vd: pctd.vardecls) {
 							// Scope oldScope = scope;
 							// scope = scp;
 							// visit(vd.type, prev);
@@ -325,13 +332,31 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						}
 
 						// add fundecl to scope
-						for (FunDecl fd: parentCtd.fundecls) {
+						for (FunDecl fd: pctd.fundecls) {
 							scp.put(new FunDeclSymbol(fd));
 						}
-
-						// update parent
-						parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClassName);
 					}
+
+					// while (parent != null) {
+					// 	ClassTypeDecl parentCtd = parent.ctd;
+
+					// 	// add vardecl to scope
+					// 	for (VarDecl vd: parentCtd.vardecls) {
+					// 		// Scope oldScope = scope;
+					// 		// scope = scp;
+					// 		// visit(vd.type, prev);
+					// 		// scope = oldScope;
+					// 		scp.put(new VarSymbol(vd));
+					// 	}
+
+					// 	// add fundecl to scope
+					// 	for (FunDecl fd: parentCtd.fundecls) {
+					// 		scp.put(new FunDeclSymbol(fd));
+					// 	}
+
+					// 	// update parent
+					// 	parent = (ClassTypeDeclSymbol) scope.lookupCurrent("class "+parentCtd.parentClassName);
+					// }
 
 					
 					/*
@@ -347,7 +372,37 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					}
 
 					for (FunDecl fd: ctd.fundecls) {
-						if (scp.lookupCurrent(fd.name) != null) {error("[Name Analyzer] ClassTypeDecl already declared: "+ ctd.name +": " + fd.name); return;}
+						Symbol temp = scp.lookupCurrent(fd.name);
+
+						if (temp instanceof VarSymbol) {
+							error("[Name Analyzer] ClassTypeDecl function var conflicts: "+ ctd.name +": " + fd.name); 
+							return;
+						} else if (temp instanceof FunDeclSymbol) {
+							// overriding, check params and return type
+							FunDecl oldFd = ((FunDeclSymbol) temp).fd;
+
+							// match return type
+							if (!fd.type.equals(oldFd.type)) {
+								error("[Name Analyzer] Overriding \"" + fd.name +  "\" Return Type Unmatched: " + fd.type + " <-> " + oldFd.type);
+								break;
+							}
+
+							// match params
+							if (fd.params.size() != oldFd.params.size()) {
+								error("[Name Analyzer] Overriding \"" + fd.name +  "\" Param Size Unmatched: " + fd.params.size() + " <-> " + oldFd.params.size());
+								break;
+							}
+
+							// match param types and order
+							for (int i = 0; i < fd.params.size(); i++) {
+								Type fdParam = fd.params.get(i).type;
+								Type oldFdParam = oldFd.params.get(i).type;
+								if (!fdParam.equals(oldFdParam)) {
+									error("[Name Analyzer] Overriding \"" + fd.name +  "\" Param Type Unmatched: " + fdParam + " <-> " + oldFdParam);
+									return;
+								}
+							}
+						}
 						
 						visit(fd.type, prev);
 						scp.put(new FunDeclSymbol(fd));

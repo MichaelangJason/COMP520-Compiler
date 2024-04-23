@@ -5,15 +5,17 @@ class A {
 
 class B extends A {
     class B field;
-    int b;
+    // int b;
     // int start;
     class A start() {}
+    // int test(char b) {}
 }
 
 class C extends B {
     class B bfield;
     // int c;
     class C run() {}
+    // int test(char b) {}
 }
 
 
@@ -36,6 +38,6 @@ void main() {
     c.test();
     c.start().test();
 
-    print_i(b.b);
-    print_i(c.b);
+    // print_i(b.b);
+    // print_i(c.b);
 }
