@@ -1,5 +1,5 @@
-int test() {}
-void heihei() {}
+// int test() {}
+// void heihei() {}
 
 class A {
     // int a;
@@ -21,7 +21,6 @@ class C extends B {
     // int a;
     class C run() {
         test();
-        heihei();
     }
     // int test(char b) {}
 }
@@ -29,6 +28,8 @@ class C extends B {
 class D extends B {
 
 }
+
+class C test() {}
 
 void main() {
     class A a;
@@ -51,14 +52,18 @@ void main() {
 
     // c = (class C) c;
     // print_i(b.test());
+    // ((class B) c).test();
 
-    // if (a.test()) {
+    if (a.test()) {
+        test().run().run();
 
-    // } else {
+    } else {
 
-    // }
+    }
 
     // fail cases
-    c.exists();
+    // c.exists();
+    // ((class A) c).run();
+    // c.run();
     // c = (class C) new class A(); // typecast to descendent
 }

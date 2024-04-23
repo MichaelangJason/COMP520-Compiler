@@ -143,7 +143,7 @@ public class Parser extends CompilerPass {
                     lookAhead(2).category == Category.LBRA) {
                 // structdecl
                 decls.add(parseStructDecl());
-            } else if(token.category == Category.CLASS) {
+            } else if(token.category == Category.CLASS && lookAhead(2).category == Category.LBRA || lookAhead(2).category == Category.EXTENDS) {
                 decls.add(parseClassDecl());
             } else {
                 // type IDENT

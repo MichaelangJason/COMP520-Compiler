@@ -426,10 +426,12 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			case InstanceFunCallExpr ifc -> {
 				// do nothing, type analyzer will handle this part
-				if (ifc.classObj instanceof VarExpr || ifc.classObj instanceof FieldAccessExpr || ifc.classObj instanceof InstanceFunCallExpr) {
-					visit(ifc.classObj, prev);
-					ifc.fc.args.forEach(n -> visit(n, prev));
-				} // special cases
+				// if (ifc.classObj instanceof VarExpr || ifc.classObj instanceof FieldAccessExpr || ifc.classObj instanceof InstanceFunCallExpr || ifc.classObj instanceof TypecastExpr) {
+				// 	visit(ifc.classObj, prev);
+				// 	ifc.fc.args.forEach(n -> visit(n, prev));
+				// } // special cases
+				visit(ifc.classObj, prev);
+				ifc.fc.args.forEach(n -> visit(n, prev));
 			}
 
 			case ClassType ct -> {
