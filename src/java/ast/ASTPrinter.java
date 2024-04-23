@@ -176,7 +176,7 @@ public class ASTPrinter {
 
             case TypecastExpr tcastexpr -> {
                 writer.print("TypecastExpr(");
-                visit(tcastexpr.subtype);
+                visit(tcastexpr.castToType);
                 writer.print(",");
                 visit(tcastexpr.expr);
                 writer.print(")");

@@ -220,7 +220,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case TypecastExpr tpcast -> {
-				Type castToType = tpcast.subtype;
+				Type castToType = tpcast.castToType;
 				Type castFromType = visit(tpcast.expr);
 
 				tpcast.type = BaseType.UNKNOWN;
@@ -239,6 +239,16 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				} else if (castFromType instanceof PointerType && castToType instanceof PointerType) {
 					Type subtype2 = ((PointerType) castToType).type;
 					tpcast.type = new PointerType(subtype2);
+				} else if (castFromType instanceof ClassType && castToType instanceof ClassType) {
+					while (castFromType != null) {
+						if (castFromType.equals(castToType)) {
+							tpcast.type = castToType;
+							break;
+						} else {
+							castFromType = ((ClassType) castFromType).ctd.parentDecl.type;
+						}
+					}
+
 				}
 
 				yield tpcast.type;

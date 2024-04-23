@@ -352,6 +352,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 						visit(fd.type, prev);
 						scp.put(new FunDeclSymbol(fd));
 					}
+					visit(ctd.type, ctd);
 					scope = oldScope;
 
 					/*
@@ -389,6 +390,11 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			case Return rtn -> {
 				rtn.fd = (FunDecl) prev;
 				if (rtn.expr != null) visit(rtn.expr, rtn);
+			}
+
+			case TypecastExpr tp -> {
+				visit(tp.castToType, prev);
+				visit(tp.expr, prev);
 			}
 
 			// for other nodes, visit their children, should be in correct order
