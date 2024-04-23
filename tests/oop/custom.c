@@ -20,7 +20,8 @@ void main() {
     class A a;
     class C c;
 
-    a = (class A) c.run();
+    a = (class A) new class C();
+    c = (class C) new class A();
 
 
     // a.test();

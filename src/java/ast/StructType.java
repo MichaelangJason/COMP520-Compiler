@@ -29,4 +29,9 @@ public final class StructType implements Type {
         // StructType must be padded
         return std.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
     }
+
+    @Override
+    public String toString() {
+        return "struct " + name;
+    }
 }

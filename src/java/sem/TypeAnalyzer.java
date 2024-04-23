@@ -240,12 +240,17 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					Type subtype2 = ((PointerType) castToType).type;
 					tpcast.type = new PointerType(subtype2);
 				} else if (castFromType instanceof ClassType && castToType instanceof ClassType) {
-					while (castFromType != null) {
-						if (castFromType.equals(castToType)) {
-							tpcast.type = castToType;
+					ClassType castTo = (ClassType) castToType;
+					ClassType castFrom = (ClassType) castFromType;
+
+
+					while (castFrom != null) {
+						if (castFrom.equals(castTo)) {
+							tpcast.type = castTo;
 							break;
 						} else {
-							castFromType = ((ClassType) castFromType).ctd.parentDecl.type;
+							if (castFrom.ctd.parentDecl == null) break;
+							castFrom = (ClassType) castFrom.ctd.parentDecl.type;
 						}
 					}
 

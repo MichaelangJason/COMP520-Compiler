@@ -30,4 +30,9 @@ public final class ClassType implements Type {
         // return std.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return "class " + name;
+    }
 }
