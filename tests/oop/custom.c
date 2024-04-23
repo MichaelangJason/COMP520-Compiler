@@ -1,5 +1,8 @@
+int test() {}
+void heihei() {}
+
 class A {
-    int a;
+    // int a;
     int test() {}
 }
 
@@ -7,26 +10,36 @@ class B extends A {
     class B field;
     // int b;
     // int start;
-    class A start(class B arg, class A arg2) {}
+    class A start(class B arg, class A arg2) {
+    }
     // int test(char b) {}
+    int test() {}
 }
 
 class C extends B {
     class B bfield;
     // int a;
-    class C run() {}
+    class C run() {
+        test();
+        heihei();
+    }
     // int test(char b) {}
 }
 
+class D extends B {
+
+}
 
 void main() {
     class A a;
     class B b;
     class C c;
+    class D d;
 
 
 
     // success cases
+    d.test();
     a = (class A) new class C();
     c.test();
     c.bfield.field = (class B) new class C();
@@ -36,6 +49,7 @@ void main() {
     c.test();
     c.start(b, a).test();
 
+    c = (class C) c;
     print_i(b.test());
 
     if (a.test()) {
@@ -46,6 +60,4 @@ void main() {
 
     // fail cases
     // c = (class C) new class A(); // typecast to descendent
-
-
 }

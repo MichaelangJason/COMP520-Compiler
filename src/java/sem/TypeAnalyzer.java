@@ -357,6 +357,11 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					if (cfd.name.equals(ifc.fc.name)) {fd = cfd; break;}
 				}
 
+				if (fd == null) {
+					error("[Type Analyzer] instance funcall" + fc.name + "undefined in " + classType);
+					yield BaseType.UNKNOWN;
+				}
+
 				// check params
 				List<VarDecl> declParams = fd.params;
 				List<Expr> args = fc.args;
