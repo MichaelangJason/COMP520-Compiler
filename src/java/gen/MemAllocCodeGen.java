@@ -51,10 +51,66 @@ public class MemAllocCodeGen extends CodeGen {
                 }
             }
 
+            case ClassTypeDecl ctd -> {
+                // follow the embedding layout
+
+                /*
+                 * FOR VARDECLS
+                 * 
+                 * offset based on allocated space "this"
+                 * 
+                 * 1. add offset of all parent "allocation size"
+                 * 2. add offset of virtual table pointer (4)
+                 * 3. same as before
+                 */
+
+                // 2. add offset of virtual table pointer (4)
+                int vdOffset = 4;
+                // 1. add offset of all parent "allocation size"
+                ClassTypeDecl parent = ctd.parentDecl;
+                while (parent != null) {
+                    vdOffset += parent.vTableSectionSize();
+                    parent = parent.parentDecl;
+                }
+
+                // same for vardecls
+                for (VarDecl vd: ctd.vardecls) {
+                    vd.fpOffset = vdOffset;
+                    vdOffset += AsmHelper.paddedSize(vd.getSize());
+                }
+
+
+                /*
+                 * FOR FUNDECLS
+                 * 
+                 * also pass "this" pointer to it? no need
+                 */
+
+                ctd.fundecls.forEach(this::visit);
+
+
+
+                // for (FunDecl fd: ctd.fundecls) {
+                //     // 4 for FP
+                //     int offset = 4 + AsmHelper.paddedSize(fd.returnSize());
+
+                //     for (VarDecl fdVd: fd.params.reversed()) {
+
+                //     }
+
+
+
+                // }
+
+
+
+
+            }
+
             case FunDecl fd -> {
                 // fp and ra each takes 4 bytes
                 // assume sp is already at fp right now
-                
+                //TODO modify for class declared function, add "this" size
                 // args passed in (a, b, c, d), so read in reversed order
                 int offset = 4 + AsmHelper.paddedSize(fd.returnSize()); // points to the start of return size
                 for (VarDecl vd: fd.params.reversed()) {

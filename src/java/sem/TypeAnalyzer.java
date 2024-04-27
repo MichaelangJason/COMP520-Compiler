@@ -383,6 +383,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 				fc.fd = fd;
 				fc.type = fd.type;
+				ifc.fd = fd;
 
 				yield fc.type;
 			}

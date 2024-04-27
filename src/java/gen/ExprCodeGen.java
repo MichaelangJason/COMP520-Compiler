@@ -25,79 +25,16 @@ public class ExprCodeGen extends CodeGen {
     public Register visit(Expr e) {
         Section currSec = asmProg.getCurrentSection();
         return switch (e) {
+
+                //TODO
+            case InstanceFunCallExpr ifc -> {
+                // similar to FunCallExpr, but pass an extra "this"
+                yield funcallGen(currSec, ifc);
+            }
+
+
             case FunCallExpr fc -> {
-                Type returnType = fc.fd.type;
-                List<VarDecl> params = fc.fd.params;
-                currSec.emit(new Comment("Execute "+fc.name));
-                Register tmpReg = Virtual.create();
-
-                // push arguments onto stack if there is
-                if (!params.isEmpty()) {
-                    // reversely push arguments to sp
-                    for (Expr arg: fc.args) {
-                        currSec.emit(new Comment("[[[Retrieving arg val]]]: "+arg.type.toString()));
-                        Register valReg = visit(arg);
-                        Type argType = arg.type;
-                        int argSize = AsmHelper.paddedSize(arg.type.getSize());
-
-                        currSec.emit(new Comment("[[[Reserving Stack size for Args]]]"));
-                        // reserve stack size
-                        currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -argSize);
-                        // copy value to stack
-                        if (argType instanceof StructType) {
-                            // case copy word by word, 
-                            // StructTypeDecl std = ((StructType) argType).std;        
-                            // assume valReg contains the address of struct
-                            for (int i = 0; i < argSize / 4; i++) {
-                                // load data contained in memory location to v0
-                                currSec.emit(OpCode.LW, tmpReg, valReg, 4*i);
-                                // copy data contained in t0 to memory location of sp
-                                currSec.emit(OpCode.SW, tmpReg, Arch.sp, 4*i);
-                            }
-
-                        } else {
-                            // for int, pointer type and array type, pass reference
-                            currSec.emit(argType == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, Arch.sp, 0);
-                        }
-                        currSec.emit(new Comment("[[[Arg Pushed]]]: "+arg.type.toString())+" ended");
-
-                    }
-                }
-
-                // reserve place for return value
-                if (returnType != BaseType.VOID) {
-                    int returnSize = returnType.getSize();
-                    currSec.emit(new Comment("[[[Reserver Stack size for Return VAL]]]: " + returnSize));
-                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnSize: 4));
-                }
-
-                // jump to corresponding procedure
-                currSec.emit(OpCode.JAL, Label.get(fc.name));
-                
-                if (returnType != BaseType.VOID) {
-                    // depends on the returnType, either store value or address
-
-                    // currSec.emit(returnType == BaseType.CHAR ? OpCode.LB: OpCode.LW, tmpReg, Arch.sp, 0);
-                    switch(returnType) {
-                        case BaseType.INT -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
-                        case PointerType pt -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
-                        case BaseType.CHAR -> {currSec.emit(OpCode.LB, tmpReg, Arch.sp, 0); break;}
-                        default ->  { currSec.emit(OpCode.ADDIU, tmpReg, Arch.sp, 0); }
-                    }
-                    
-                    // reset sp object to return value
-                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, returnType instanceof StructType ? returnType.getSize(): 4);
-                }
-
-                // reset sp subjects to args size
-                if (!fc.args.isEmpty()) {
-                    int totalSize = fc.args.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
-                    currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, totalSize);
-                }
-                currSec.emit(new Comment("Return From "+fc.name));
-
-                // should contains the value or the address of 
-                yield tmpReg;
+                yield funcallGen(currSec, fc);
             }
 
             case VarExpr vexp -> {
@@ -274,7 +211,7 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case ArrayAccessExpr arrexp -> {
-                currSec.emit(new Comment("[ArrAccess]"));
+                currSec.emit(new Comment(">ArrAccess<"));
                 // get address of the head of the array
                 Register resReg = (new AddrCodeGen(asmProg)).visit(arrexp);
 
@@ -282,7 +219,7 @@ public class ExprCodeGen extends CodeGen {
                 if (arrexp.type instanceof BaseType) {
                     currSec.emit(arrexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
                 }
-                currSec.emit(new Comment("[ArrAccess End]"));
+                currSec.emit(new Comment(">ArrAccess End<"));
 
                 yield resReg;
             }
@@ -300,15 +237,15 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case Assign asiexp -> {
-                currSec.emit(new Comment("[[[Assign]]]: "+asiexp.type.toString()));
+                currSec.emit(new Comment(">>>Assign<<<: "+asiexp.type.toString()));
                 Type type = asiexp.type;
-                currSec.emit(new Comment("[[Get VAR Addr]]"));
+                currSec.emit(new Comment(">>Get VAR Addr<<"));
                 Register varReg = (new AddrCodeGen(asmProg)).visit(asiexp.lhs);
-                currSec.emit(new Comment("[[Get VAL]]"));
+                currSec.emit(new Comment(">>Get VAL<<"));
                 Register valReg = visit(asiexp.rhs);
                 Register tempReg = Virtual.create();
 
-                currSec.emit(new Comment("[[Start Copy]]"));
+                currSec.emit(new Comment(">>Start Copy<<"));
                 if (type instanceof StructType) {
                     for (int i = 0; i < (type.getSize() / 4); i++) {
                         // load corresponding word to t0
@@ -329,5 +266,102 @@ public class ExprCodeGen extends CodeGen {
                 throw new IllegalStateException();
             }
         };
+    }
+
+    private Register funcallGen(Section currSec, Expr funcall) {
+        if (!(funcall instanceof FunCallExpr || funcall instanceof InstanceFunCallExpr)) return Virtual.create();
+
+        FunCallExpr fc = funcall instanceof FunCallExpr ? (FunCallExpr) funcall: ((InstanceFunCallExpr) funcall).fc;
+
+        Type returnType = fc.fd.type;
+        List<VarDecl> params = fc.fd.params;
+        currSec.emit(new Comment("Execute "+fc.name));
+        Register tmpReg = Virtual.create();
+
+        // similar to FunCallExpr, but pass an extra "this"
+        if (funcall instanceof InstanceFunCallExpr) {
+            // push this onto stack
+            Register thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
+            currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
+            currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); // reserve size for pointer
+            currSec.emit(OpCode.SW, thisAddrReg, Arch.sp, 0); // push to stack
+        }
+
+        // push arguments onto stack if there is
+        if (!params.isEmpty()) {
+            // reversely push arguments to sp
+            for (Expr arg: fc.args) {
+                currSec.emit(new Comment(">>>Retrieving arg val<<<: "+arg.type.toString()));
+                Register valReg = visit(arg);
+                Type argType = arg.type;
+                int argSize = AsmHelper.paddedSize(arg.type.getSize());
+
+                currSec.emit(new Comment(">>>Reserving Stack size for Args<<<"));
+                // reserve stack size
+                currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -argSize);
+                // copy value to stack
+                if (argType instanceof StructType) {
+                    // case copy word by word, 
+                    // StructTypeDecl std = ((StructType) argType).std;        
+                    // assume valReg contains the address of struct
+                    for (int i = 0; i < argSize / 4; i++) {
+                        // load data contained in memory location to v0
+                        currSec.emit(OpCode.LW, tmpReg, valReg, 4*i);
+                        // copy data contained in t0 to memory location of sp
+                        currSec.emit(OpCode.SW, tmpReg, Arch.sp, 4*i);
+                    }
+
+                } else {
+                    // for int, pointer type and array type, pass reference
+                    currSec.emit(argType == BaseType.CHAR ? OpCode.SB: OpCode.SW, valReg, Arch.sp, 0);
+                }
+                currSec.emit(new Comment(">>>Arg Pushed<<<: "+arg.type.toString())+" ended");
+
+            }
+        }
+
+        // reserve place for return value
+        if (returnType != BaseType.VOID) {
+            int returnSize = returnType.getSize();
+            currSec.emit(new Comment(">>>Reserver Stack size for Return VAL<<<: " + returnSize));
+            currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -(returnType instanceof StructType ? returnSize: 4));
+        }
+
+        // jump to corresponding procedure
+        currSec.emit(OpCode.JAL, Label.get(fc.name));
+        
+        // 
+        if (returnType != BaseType.VOID) {
+            // depends on the returnType, either store value or address
+
+            // currSec.emit(returnType == BaseType.CHAR ? OpCode.LB: OpCode.LW, tmpReg, Arch.sp, 0);
+            switch(returnType) {
+                case BaseType.INT -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
+                case PointerType pt -> {currSec.emit(OpCode.LW, tmpReg, Arch.sp, 0); break;}
+                case BaseType.CHAR -> {currSec.emit(OpCode.LB, tmpReg, Arch.sp, 0); break;}
+                default ->  { currSec.emit(OpCode.ADDIU, tmpReg, Arch.sp, 0); }
+            }
+            
+            // reset sp object to return value
+            currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, returnType instanceof StructType ? returnType.getSize(): 4);
+        }
+
+        // reset sp subjects to args size
+        if (!fc.args.isEmpty()) {
+            int totalSize = fc.args.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
+            currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, totalSize);
+        }
+
+        // reset sp for extra args for InstanceFuncall
+        if (funcall instanceof InstanceFunCallExpr) currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4);        
+
+        currSec.emit(new Comment(">>>>>>>>>Return From "+fc.name));
+
+        // should contains the value or the address of 
+        return tmpReg;
+    }
+
+    private Register classLocalVar(Section currSec, VarExpr var) {
+        return null;
     }
 }

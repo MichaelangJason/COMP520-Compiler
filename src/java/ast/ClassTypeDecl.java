@@ -3,6 +3,8 @@ package ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import gen.AsmHelper;
+
 public final class ClassTypeDecl extends Decl {
     public ClassTypeDecl parentDecl;
     public String parentClassName = null;
@@ -23,6 +25,10 @@ public final class ClassTypeDecl extends Decl {
         subnodes.addAll(vardecls);
         subnodes.addAll(fundecls);
         return subnodes;
+    }
+
+    public int vTableSectionSize() {
+        return 4 + this.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
     }
 
 }

@@ -36,7 +36,7 @@ public final class ClassType implements Type {
         return "class " + name;
     }
 
-    public int getAllocationSize() {
+    public int getTotalAllocationSize() {
         // virtual table pointer + field size
         if (this.ctd == null) return -1;
 
