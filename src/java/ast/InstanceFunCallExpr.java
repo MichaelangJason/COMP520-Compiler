@@ -16,7 +16,8 @@ public final class InstanceFunCallExpr extends Expr {
     @Override
     public List<ASTNode> children() {
         List<ASTNode> children = new ArrayList<>();
-        children.addAll(children);
+        // children.addAll(children);
+        children.add(classObj);
         children.add(fc);
         return children;
     }    

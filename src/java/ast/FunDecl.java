@@ -24,6 +24,10 @@ public final class FunDecl extends Decl {
         return children;
     }
 
+    public boolean isClassFunction() {
+        return ctd != null;
+    }
+
     public int returnSize() {
         return this.type.getSize();
     }

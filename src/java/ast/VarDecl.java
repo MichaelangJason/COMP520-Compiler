@@ -8,6 +8,7 @@ import gen.asm.Label;
 public final class VarDecl extends Decl {
     public int fpOffset = -1;
     public Label label;
+    public ClassTypeDecl ctd = null;
 
     public VarDecl(Type type, String name) {
 	    this.type = type;
@@ -22,5 +23,9 @@ public final class VarDecl extends Decl {
 
     public int getSize() {
         return this.type.getSize();
+    }
+
+    public boolean isClassField() {
+        return ctd != null;
     }
 }

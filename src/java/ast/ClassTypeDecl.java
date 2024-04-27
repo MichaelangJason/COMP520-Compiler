@@ -21,6 +21,7 @@ public final class ClassTypeDecl extends Decl {
         List<ASTNode> subnodes = new ArrayList<>();
         subnodes.add(type);
         subnodes.addAll(vardecls);
+        subnodes.addAll(fundecls);
         return subnodes;
     }
 

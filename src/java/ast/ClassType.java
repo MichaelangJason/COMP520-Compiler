@@ -35,4 +35,22 @@ public final class ClassType implements Type {
     public String toString() {
         return "class " + name;
     }
+
+    public int getAllocationSize() {
+        // virtual table pointer + field size
+        if (this.ctd == null) return -1;
+
+        ClassTypeDecl curr = this.ctd;
+        int sum = 0;
+
+        while (curr != null) {
+            sum += 4; // virtual table pointer
+            // add size of all fields for current ctd
+            sum += ctd.vardecls.stream().mapToInt(vd -> AsmHelper.paddedSize(vd.type.getSize())).sum();
+            // move to parent decl
+            curr = curr.parentDecl;
+        }
+
+        return sum;
+    }
 }

@@ -367,10 +367,12 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 					for (VarDecl vd: ctd.vardecls) {
 						if (scp.lookupCurrent(vd.name) != null) {error("[Name Analyzer] ClassTypeDecl parent declared: "+ ctd.name + "->" + ctd.parentClassName + ": " + vd.name); return;}
 
+						// add this field to vardecl
 						visit(vd.type, prev);
 						scp.put(new VarSymbol(vd));
 					}
 
+					// support overriding for function declarations
 					for (FunDecl fd: ctd.fundecls) {
 						Symbol temp = scp.lookupCurrent(fd.name);
 

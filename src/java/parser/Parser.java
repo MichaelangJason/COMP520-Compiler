@@ -250,6 +250,7 @@ public class Parser extends CompilerPass {
         
         ClassTypeDecl ctd = new ClassTypeDecl(classType, vds, fds, parentClass);
         for (FunDecl fd: fds) fd.ctd = ctd;
+        for (VarDecl vd: vds) vd.ctd = ctd;
         return ctd;
     }
 
