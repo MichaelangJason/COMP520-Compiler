@@ -21,7 +21,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case FunDecl fd -> {
 				// to complete
-				visit(fd.block, prev);
+				visit(fd.block, fd);
 				yield fd.type;
 			}
 
@@ -75,6 +75,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				}
 
 				fc.type = fc.fd.type;
+				if (prev instanceof FunDecl) fc.referFd = (FunDecl) prev;
 				yield fc.fd.type;
 			}
 
@@ -386,8 +387,12 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 				fc.fd = fd;
 				fc.type = fd.type;
+				if (prev instanceof FunDecl) fc.referFd = (FunDecl) prev;
+
 				ifc.fd = fd;
 				ifc.type = fd.type;
+				if (prev instanceof FunDecl) ifc.referFd = (FunDecl) prev;
+				
 
 				yield fc.type;
 			}

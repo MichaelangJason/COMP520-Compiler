@@ -30,8 +30,8 @@ class C extends B {
     int getAndSetC(int val) {
         int temp;
         temp = c;
-        getAndSetA(val);
-        getAndSetB(val);
+        getAndSetA(val + 2);
+        // getAndSetB(val + 4);
 
         c = val;
         return temp;
@@ -44,6 +44,10 @@ void main() {
     class C c;
     // a = (class A) new class C();
     c = new class C();
+    c.getAndSetC(1);
+    print_i(c.a);
+    // print_i(c.b);
+    print_i(c.c);
     // a.a = 10;
 
 

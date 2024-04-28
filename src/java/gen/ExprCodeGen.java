@@ -330,8 +330,12 @@ public class ExprCodeGen extends CodeGen {
             // push this onto stack
             if (isImplicitFuncall) {
                 // retrieve this from fp
-                clsType = (ClassType) fc.fd.ctd.type;
-                // currCtd = clsType.ctd;
+                targetCtd = fc.fd.ctd;
+                currCtd = fc.referFd.ctd;
+
+                int offset = 4 + fc.referFd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + fc.referFd.returnSize();
+                thisAddrReg = Virtual.create();
+                currSec.emit(OpCode.LW, thisAddrReg, Arch.fp, offset);
 
             } else {
                 thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
@@ -409,7 +413,12 @@ public class ExprCodeGen extends CodeGen {
              * 5. set offset from vTable pointer
              * 6. jalr 
              */
-            thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // virtual table pointer
+            if (isImplicitFuncall) {
+                int offset = 4 + fc.referFd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + fc.referFd.returnSize();
+                currSec.emit(OpCode.LW, thisAddrReg, Arch.fp, offset);
+            } else {
+                thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // virtual table pointer
+            }
             // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0); // load virtual table pointer
             currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0); // load virtual table address
 
@@ -452,9 +461,5 @@ public class ExprCodeGen extends CodeGen {
 
         // should contains the value or the address of 
         return tmpReg;
-    }
-
-    private Register classLocalVar(Section currSec, VarExpr var) {
-        return null;
     }
 }
