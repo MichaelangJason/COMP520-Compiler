@@ -44,7 +44,7 @@ public class ExprCodeGen extends CodeGen {
 
                 // the returned register should contain the value of var
                 // for array and struct, return return the address of it
-                if (vexp.type instanceof BaseType || vexp.type instanceof PointerType || vexp.type instanceof ClassType && !vexp.isClassField()) {
+                if (vexp.type instanceof BaseType || vexp.type instanceof PointerType || vexp.type instanceof ClassType) {
                     currSec.emit(vexp.type == BaseType.CHAR ? OpCode.LB: OpCode.LW, resReg, resReg, 0);
                 }
 
@@ -283,15 +283,15 @@ public class ExprCodeGen extends CodeGen {
 
                 // load virtual table pointers
                 ClassTypeDecl ctd = ni.classType.ctd;
-                int offset = 0;
                 Register lblAddrReg = Virtual.create();
                 List<ClassTypeDecl> parents = new ArrayList<>();
-
+                
                 while (ctd != null) {
                     parents.add(ctd);
                     ctd = ctd.parentDecl;
                 }
-
+                
+                int offset = 0;
                 for (ClassTypeDecl p: parents.reversed()) {
                     // vtable same for all
                     currSec.emit(OpCode.LA, lblAddrReg, Label.get("vtable_"+ni.classType.name));
