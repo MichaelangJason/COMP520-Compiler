@@ -289,7 +289,7 @@ public class ExprCodeGen extends CodeGen {
                 while (ctd != null) {
                     // vtable same for all
                     currSec.emit(OpCode.LA, lblAddrReg, Label.get("vtable_"+ni.classType.name));
-                    currSec.emit(OpCode.LW, lblAddrReg, lblAddrReg, 0);
+                    // currSec.emit(OpCode.LW, lblAddrReg, lblAddrReg, 0);
                     currSec.emit(OpCode.SW, lblAddrReg, Arch.v0, offset);
 
                     offset += ctd.vTableSectionSize();
@@ -318,11 +318,13 @@ public class ExprCodeGen extends CodeGen {
 
         // similar to FunCallExpr, but pass an extra "this"
         if (funcall instanceof InstanceFunCallExpr) {
+            currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
             // push this onto stack
             thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
-            currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
+            // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
             currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); // reserve size for pointer
             currSec.emit(OpCode.SW, thisAddrReg, Arch.sp, 0); // push to stack
+            currSec.emit(new Comment(">>>This Pushed<<<"));
         }
 
         // push arguments onto stack if there is
@@ -332,6 +334,7 @@ public class ExprCodeGen extends CodeGen {
                 currSec.emit(new Comment(">>>Retrieving arg val<<<: "+arg.type.toString()));
                 Register valReg = visit(arg);
                 Type argType = arg.type;
+                // if (argType instanceof ClassType) currSec.emit(OpCode.LW, valReg, valReg, 0);
                 int argSize = AsmHelper.paddedSize(arg.type.getSize());
 
                 currSec.emit(new Comment(">>>Reserving Stack size for Args<<<"));
@@ -375,10 +378,12 @@ public class ExprCodeGen extends CodeGen {
              * 5. set offset from vTable pointer
              * 6. jalr 
              */
+            thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // class object stored position
             currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0); // load virtual table pointer
+            currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0); // load virtual table address
 
             ClassTypeDecl ctd = fc.fd.ctd;
-            int offset = ctd.allFds().keySet().stream().toList().indexOf(fc.name);;
+            int offset = ctd.allFds().keySet().stream().toList().indexOf(fc.name);
 
             currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, offset * 4);
             currSec.emit(OpCode.JALR, thisAddrReg);

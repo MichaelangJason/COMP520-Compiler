@@ -41,21 +41,31 @@ public class AddrCodeGen extends CodeGen {
                 // if v is a Class field (accessing class field in InstanceFuncall), load from this
                 if (v.isClassField()) {
                     // first get address of this from fundecl associated with varexpr
-                    int offset = v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
+                    int offset = 4 + v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + v.fd.returnSize();
                     currSec.emit(OpCode.LW, resReg, Arch.fp, offset);
+                    currSec.emit(OpCode.LW, resReg, resReg, 0);
                     
                     // get the corresponding classDecl offset
                     String fieldName = v.name;
                     ClassTypeDecl ctd = v.fd.ctd;
-                    offset = 0;
-                    while (ctd != null) {
-                        if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fieldName))) break;
-                        offset += ctd.vTableSectionSize();
-                        ctd = ctd.parentDecl;
-                    }
+                    offset = 4;
+
+                    // while (ctd != null) {
+                    //     // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
+                    //     int innerOffset = 0;
+                    //     for (VarDecl vd: ctd.vardecls) {
+                    //         if (vd.name.equals(fieldName)) {
+                    //             offset += innerOffset;
+                    //             break;
+                    //         }
+                    //         innerOffset += AsmHelper.paddedSize(vd.getSize());
+                    //     }
+                    //     // offset += ctd.vTableSectionSize();
+                    //     ctd = ctd.parentDecl;
+                    // }
                     
                     // get clsOffset from there
-                    currSec.emit(OpCode.ADDIU, resReg, resReg, offset + v.vd.clsOffset);
+                    currSec.emit(OpCode.ADDIU, resReg, resReg, v.vd.clsOffset);
                 } else {
                     if (v.vd.fpOffset == -1) {
                         currSec.emit(OpCode.LA, resReg, v.vd.label);
@@ -115,6 +125,8 @@ public class AddrCodeGen extends CodeGen {
                     /*
                      * find the corresponding classDecl
                      */
+                    
+                    currSec.emit(OpCode.LW, resReg, resReg, 0);
                     ClassTypeDecl ctd = ((ClassType) fldexp.structName.type).ctd;
                     int offset = 4; // 4 for virtual table pointer
                     while (ctd != null) {
@@ -127,7 +139,7 @@ public class AddrCodeGen extends CodeGen {
                             }
                             innerOffset += AsmHelper.paddedSize(vd.getSize());
                         }
-                        offset += ctd.vTableSectionSize();
+                        // offset += ctd.vTableSectionSize();
                         ctd = ctd.parentDecl;
                     }
                     
