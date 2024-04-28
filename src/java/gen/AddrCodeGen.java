@@ -9,6 +9,7 @@ import ast.ClassType;
 import ast.ClassTypeDecl;
 import ast.Expr;
 import ast.FieldAccessExpr;
+import ast.PointerType;
 import ast.StructType;
 import ast.StructTypeDecl;
 import ast.ValueAtExpr;
@@ -171,6 +172,7 @@ public class AddrCodeGen extends CodeGen {
                     // }
                     
                     currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
+                    if (fldexp.type instanceof PointerType) currSec.emit(OpCode.LW, resReg, resReg, 0);
                 }
                 
 
