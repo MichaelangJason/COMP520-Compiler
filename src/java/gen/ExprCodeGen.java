@@ -1,5 +1,6 @@
 package gen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ast.*;
@@ -194,9 +195,9 @@ public class ExprCodeGen extends CodeGen {
             case TypecastExpr typeCast -> {
                 Register resReg = visit(typeCast.expr);
 
-                if (typeCast.castOffset != 0) {
-                    currSec.emit(OpCode.ADDIU, resReg, resReg, typeCast.castOffset);
-                }
+                // if (typeCast.castOffset != 0) {
+                //     currSec.emit(OpCode.ADDIU, resReg, resReg, typeCast.castOffset);
+                // }
 
                 yield resReg;
             }
@@ -281,21 +282,25 @@ public class ExprCodeGen extends CodeGen {
                 currSec.emit(OpCode.SYSCALL);
 
                 // load virtual table pointers
-                //TODO
                 ClassTypeDecl ctd = ni.classType.ctd;
                 int offset = 0;
                 Register lblAddrReg = Virtual.create();
+                List<ClassTypeDecl> parents = new ArrayList<>();
 
                 while (ctd != null) {
+                    parents.add(ctd);
+                    ctd = ctd.parentDecl;
+                }
+
+                for (ClassTypeDecl p: parents.reversed()) {
                     // vtable same for all
                     currSec.emit(OpCode.LA, lblAddrReg, Label.get("vtable_"+ni.classType.name));
                     // currSec.emit(OpCode.LW, lblAddrReg, lblAddrReg, 0);
                     currSec.emit(OpCode.SW, lblAddrReg, Arch.v0, offset);
 
-                    offset += ctd.vTableSectionSize();
-                    ctd = ctd.parentDecl;
+                    offset += p.vTableSectionSize();
+                    // ctd = ctd.parentDecl;
                 }
-                
 
                 yield Arch.v0;
             }
@@ -323,39 +328,14 @@ public class ExprCodeGen extends CodeGen {
         if (isInstanceFuncall) {
             currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
             int castOffset = 0;
-            
-            ClassType clsType = null;
-            ClassTypeDecl currCtd = null;
-            ClassTypeDecl targetCtd = null;
-            // push this onto stack
-            if (isImplicitFuncall) {
-                // retrieve this from fp
-                targetCtd = fc.fd.ctd;
-                currCtd = fc.referFd.ctd;
 
+            if (isImplicitFuncall) {
                 int offset = 4 + fc.referFd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + fc.referFd.returnSize();
                 thisAddrReg = Virtual.create();
                 currSec.emit(OpCode.LW, thisAddrReg, Arch.fp, offset);
-
             } else {
-                thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
-                // based on type and funcall related, cast to corresponding type
-                InstanceFunCallExpr ifc = (InstanceFunCallExpr) funcall;
-                clsType = (ClassType) ifc.classObj.type;
-                currCtd = clsType.ctd;
-                targetCtd = ifc.fd.ctd;
-
+                thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get the class object stored position
             }
-            
-            // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
-            
-            while (!currCtd.equals(targetCtd)) {
-                castOffset += currCtd.vTableSectionSize();
-                currCtd = currCtd.parentDecl;
-            }
-            // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
-            currSec.emit(OpCode.ADDIU, thisAddrReg, thisAddrReg, castOffset);
-
 
             currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); // reserve size for pointer
             currSec.emit(OpCode.SW, thisAddrReg, Arch.sp, 0); // push to stack

@@ -1,6 +1,7 @@
 package gen;
 
-import java.sql.Struct;
+import java.util.ArrayList;
+import java.util.List;
 
 import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
@@ -8,7 +9,6 @@ import ast.ClassType;
 import ast.ClassTypeDecl;
 import ast.Expr;
 import ast.FieldAccessExpr;
-import ast.FunCallExpr;
 import ast.StructType;
 import ast.StructTypeDecl;
 import ast.ValueAtExpr;
@@ -44,28 +44,23 @@ public class AddrCodeGen extends CodeGen {
                     int offset = 4 + v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + v.fd.returnSize();
                     currSec.emit(OpCode.LW, resReg, Arch.fp, offset); // assume pushed in correct address
                     // currSec.emit(OpCode.LW, resReg, resReg, 0);
-                    
-                    // get the corresponding classDecl offset
-                    // String fieldName = v.name;
-                    ClassTypeDecl invokeCtd = v.fd.ctd;
-                    ClassTypeDecl targetCtd = v.vd.ctd;
-                    offset = v.vd.clsOffset;
 
-                    while (invokeCtd != null) {
-                        // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
-                        // int innerOffset = 0;
-                        // for (VarDecl vd: invokeCtd.vardecls) {
-                        //     if (vd.name.equals(fieldName)) {
-                        //         offset += innerOffset;
-                        //         break;
-                        //     }
-                        //     innerOffset += AsmHelper.paddedSize(vd.getSize());
-                        // }
-                        if (invokeCtd.equals(targetCtd)) break;
-                        offset += invokeCtd.vTableSectionSize();
-                        invokeCtd = invokeCtd.parentDecl;
-                    }
+                    String fieldName = v.name;
+                    ClassTypeDecl curr = v.fd.ctd;
+                    List<ClassTypeDecl> parents = new ArrayList<>();
                     
+                    while (curr != null) {
+                        parents.add(curr);
+                        curr = curr.parentDecl;
+                    }
+
+                    offset = v.vd.clsOffset;
+                    for (ClassTypeDecl p: parents.reversed()) {
+                        if (p.vardecls.stream().anyMatch(vd -> vd.name.equals(fieldName))) break;
+                        offset += p.vTableSectionSize();
+                    }
+
+
                     // get clsOffset from there
                     currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
                 } else {
@@ -127,26 +122,53 @@ public class AddrCodeGen extends CodeGen {
                     /*
                      * find the corresponding classDecl
                      */
+                    currSec.emit(OpCode.LW, resReg, resReg, 0); // get the class position
+                    ClassTypeDecl curr = ((ClassType) fldexp.structName.type).ctd;
+                    List<ClassTypeDecl> parents = new ArrayList<>();
+
+                    while (curr != null) {
+                        parents.add(curr);
+                        curr = curr.parentDecl;
+                    }
                     
-                    currSec.emit(OpCode.LW, resReg, resReg, 0);
-                    ClassTypeDecl ctd = ((ClassType) fldexp.structName.type).ctd;
-                    int offset = 4; // 4 for virtual table pointer
+                    int offset = 0; // 4 for virtual table pointer
                     boolean found = false;
-                    while (ctd != null) {
-                        // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
-                        int innerOffset = 0;
-                        for (VarDecl vd: ctd.vardecls) {
+                    for (ClassTypeDecl p: parents.reversed()) {
+                        // if (p.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
+                        int innerOffset = 4; // 4 for virtual table pointer
+                        for (VarDecl vd: p.vardecls) {
                             if (vd.name.equals(fldexp.fieldName)) {
-                                offset += innerOffset;
                                 found = true;
+                                offset += innerOffset;
                                 break;
                             }
                             innerOffset += AsmHelper.paddedSize(vd.getSize());
                         }
                         if (found) break;
-                        offset += ctd.vTableSectionSize();
-                        ctd = ctd.parentDecl;
+
+                        offset += p.vTableSectionSize();
                     }
+                    
+                    
+
+
+                    
+                    // boolean found = false;
+                    // while (ctd != null) {
+                    //     // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
+                    //     int innerOffset = 0;
+                    //     for (VarDecl vd: ctd.vardecls) {
+                    //         if (vd.name.equals(fldexp.fieldName)) {
+                    //             offset += innerOffset;
+                    //             found = true;
+                    //             break;
+                    //         }
+                    //         innerOffset += AsmHelper.paddedSize(vd.getSize());
+                    //     }
+                    //     if (found) break;
+                    //     offset += ctd.vTableSectionSize();
+                    //     ctd = ctd.parentDecl;
+                    // }
                     
                     currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
                 }
