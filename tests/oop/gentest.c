@@ -1,11 +1,14 @@
 class A {
     int a;
-    void test() {
-        a = 10;
-        // print_i(a);
-    }
-    void aa() {
-        print_s((char *) "aa\n");
+    // void test() {
+    //     a = 10;
+    //     // print_i(a);
+    // }
+    // void aa() {
+    //     print_s((char *) "aa\n");
+    // }
+    void setA(int val) {
+        a = val;
     }
     int getA() {
         return a;
@@ -14,10 +17,10 @@ class A {
 
 class B extends A {
     int b;
-    void test() {
-        a = 9;
-        // print_i(a);
-    }
+    // void test() {
+    //     a = 9;
+    //     // print_i(a);
+    // }
     void bb() {
         print_s((char *) "bb\n");
     }
@@ -28,9 +31,9 @@ class B extends A {
 
 class C extends B {
     int c;
-    void test() {
-        a = 67;
-    }
+    // void test() {
+    //     a = 67;
+    // }
     void cc() {
         print_s((char *) "cc\n");
     }
@@ -45,9 +48,13 @@ void main() {
     class C c;
     a = (class A) new class C();
     // a.a = 10;
-    a.test();
+    // a.test();
+    // print_i(a.getA());
+
+    a.setA(10);
     print_i(a.getA());
-    a.aa();
+
+    // a.aa();
     // c = new class C();
     // a.test();
     // print_i(a.a);

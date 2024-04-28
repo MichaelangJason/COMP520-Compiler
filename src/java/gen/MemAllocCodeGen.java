@@ -120,7 +120,7 @@ public class MemAllocCodeGen extends CodeGen {
                 //TODO modify for class declared function, add "this" size
                 // args passed in (a, b, c, d), so read in reversed order
                 int offset = 4 + AsmHelper.paddedSize(fd.returnSize()); // points to the start of return size
-                if (fd.isClassFunction()) offset += 4;
+                // if (fd.isClassFunction()) offset += 4;
                 for (VarDecl vd: fd.params.reversed()) {
                     // fpOffset set to the start of the argument
                     vd.fpOffset = offset;
