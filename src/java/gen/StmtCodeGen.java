@@ -2,6 +2,7 @@ package gen;
 
 import ast.*;
 import gen.asm.AssemblyProgram;
+import gen.asm.Comment;
 import gen.asm.Label;
 import gen.asm.OpCode;
 import gen.asm.Register;
@@ -80,7 +81,11 @@ public class StmtCodeGen extends CodeGen {
                 if (returnType != BaseType.VOID){
                     // pushes return value onto stack?
                     // handled by FunCall?
+                    currSec.emit(new Comment(">>>Returning Value<<<"));
                     Register varReg = (new ExprCodeGen(asmProg)).visit(rtnStmt.expr);
+                    currSec.emit(new Comment(">>>Copy Value<<<"));
+
+
 
                     // copy return value to reserved sp
                     if (returnType instanceof StructType) {
@@ -94,6 +99,8 @@ public class StmtCodeGen extends CodeGen {
                         // copy
                         currSec.emit(returnType == BaseType.CHAR ? OpCode.SB : OpCode.SW, varReg, Arch.fp, 4);
                     }
+                    currSec.emit(new Comment(">>>Returned<<<"));
+
                 }
                 // jump back to ra
                 // currSec.emit(OpCode.JR, Arch.ra);

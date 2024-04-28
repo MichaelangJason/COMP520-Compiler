@@ -42,8 +42,8 @@ public class AddrCodeGen extends CodeGen {
                 if (v.isClassField()) {
                     // first get address of this from fundecl associated with varexpr
                     int offset = 4 + v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + v.fd.returnSize();
-                    currSec.emit(OpCode.LW, resReg, Arch.fp, offset);
-                    currSec.emit(OpCode.LW, resReg, resReg, 0);
+                    currSec.emit(OpCode.LW, resReg, Arch.fp, offset); // assume pushed in accurate address
+                    // currSec.emit(OpCode.LW, resReg, resReg, 0);
                     
                     // get the corresponding classDecl offset
                     String fieldName = v.name;

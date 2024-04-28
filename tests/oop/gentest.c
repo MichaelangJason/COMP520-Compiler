@@ -44,9 +44,10 @@ void main() {
     // class B b;
     class C c;
     a = (class A) new class C();
-    a.a = 10;
+    // a.a = 10;
+    a.test();
     print_i(a.getA());
-    // a.aa();
+    a.aa();
     // c = new class C();
     // a.test();
     // print_i(a.a);
