@@ -453,7 +453,7 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 
 			case Return rtn -> {
 				rtn.fd = (FunDecl) prev;
-				if (rtn.expr != null) visit(rtn.expr, rtn);
+				if (rtn.expr != null) visit(rtn.expr, prev);
 			}
 
 			case TypecastExpr tp -> {

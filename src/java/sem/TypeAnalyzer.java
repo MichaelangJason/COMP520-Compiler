@@ -177,7 +177,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 						yield BaseType.UNKNOWN;
 					}
 
-					List<VarDecl> fields = fieldT instanceof StructType ? ((StructType) fieldT).std.vardecls : ((ClassType) fieldT).ctd.vardecls;
+					List<VarDecl> fields = new ArrayList<>(fieldT instanceof StructType ? ((StructType) fieldT).std.vardecls : ((ClassType) fieldT).ctd.vardecls);
 
 					// add all ancestor's fields
 					if (fieldT instanceof ClassType) {
@@ -386,6 +386,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				fc.fd = fd;
 				fc.type = fd.type;
 				ifc.fd = fd;
+				ifc.type = fd.type;
 
 				yield fc.type;
 			}
