@@ -172,7 +172,7 @@ public class AddrCodeGen extends CodeGen {
                     // }
                     
                     currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
-                    if (fldexp.type instanceof PointerType) currSec.emit(OpCode.LW, resReg, resReg, 0);
+                    // if (fldexp.type instanceof PointerType) currSec.emit(OpCode.LW, resReg, resReg, 0);
                 }
                 
 

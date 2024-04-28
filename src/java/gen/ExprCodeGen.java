@@ -238,8 +238,8 @@ public class ExprCodeGen extends CodeGen {
                 Register resReg = (new AddrCodeGen(asmProg)).visit(fldexp);
 
                 // return value if char or integer
-                if (fldexp.type instanceof BaseType) {
-                    currSec.emit(fldexp.type == BaseType.INT ? OpCode.LW: OpCode.LB, resReg, resReg, 0);
+                if (fldexp.type instanceof BaseType || fldexp.structName.type instanceof ClassType) {
+                    currSec.emit(fldexp.type == BaseType.CHAR ? OpCode.LB: OpCode.LW, resReg, resReg, 0);
                 }
 
                 yield resReg;

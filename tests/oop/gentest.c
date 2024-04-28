@@ -92,17 +92,22 @@ void main() {
     // print_c((*sha).c); 
     
     a = (class A) new class C();
-    ac = a;
+    // ac = a;
 
-    if (a == ac) {
-        print_s((char *) "scc");
-    }
+    // if (a == ac) {
+    //     print_s((char *) "scc");
+    // }
 
-    ac.test();
-    print_i(getA(a));
+    // ac.test();
+    // print_i(getA(a));
 
-    // a = (class A) new class C();
+    // // a = (class A) new class C();
     c = new class C();
+    c.qs = (struct t *) mcmalloc(sizeof(struct t));
+    (*c.qs).a = 23;
+    (*c.qs).c = 'c';
+    print_i((*c.qs).a);
+    print_c((*c.qs).c);
     c.testMa();
     print_i(c.a);
     print_i(c.mA.a);
@@ -123,10 +128,10 @@ void main() {
     print_i((*c.qs).a);
     print_c((*c.qs).c);
 
-    // print_i(c.a);
+    // // print_i(c.a);
 
-    c.test();
-    print_i(getA((class A) c));
+    // c.test();
+    // print_i(getA((class A) c));
 
 
 //    getA((class A) c);
