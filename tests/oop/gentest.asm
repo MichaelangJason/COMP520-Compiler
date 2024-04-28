@@ -13,21 +13,21 @@ vtable_C:
 
 .data
 # Allocated labels for virtual registers
-label_21_v0:
-.space 4
 label_54_v10:
-.space 4
-label_29_v5:
-.space 4
-label_38_v3:
-.space 4
-label_20_v1:
-.space 4
-label_46_v8:
 .space 4
 label_37_v6:
 .space 4
+label_21_v0:
+.space 4
+label_38_v3:
+.space 4
 label_27_v4:
+.space 4
+label_29_v5:
+.space 4
+label_46_v8:
+.space 4
+label_20_v1:
 .space 4
 
 .text
@@ -45,27 +45,7 @@ sw $ra,0($sp)
 # Original instruction: addiu $sp,$fp,-8
 addiu $sp,$fp,-8
 # Original instruction: pushRegisters
-la $t0,label_21_v0
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
 la $t0,label_54_v10
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_29_v5
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_38_v3
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_20_v1
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_46_v8
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -73,7 +53,27 @@ la $t0,label_37_v6
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
+la $t0,label_21_v0
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
+la $t0,label_38_v3
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
 la $t0,label_27_v4
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
+la $t0,label_29_v5
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
+la $t0,label_46_v8
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
+la $t0,label_20_v1
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -210,10 +210,10 @@ lw $t4,0($t4)
 lw $t4,0($t4)
 la $t0,label_46_v8
 sw $t4,0($t0)
-# Original instruction: addiu v8,v8,4
+# Original instruction: addiu v8,v8,20
 la $t4,label_46_v8
 lw $t4,0($t4)
-addiu $t4,$t4,4
+addiu $t4,$t4,20
 la $t0,label_46_v8
 sw $t4,0($t0)
 # Original instruction: lw v8,0(v8)
@@ -275,11 +275,7 @@ addiu $sp,$sp,4
 # Original instruction: popRegisters
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_27_v4
-sw $t0,0($t1)
-lw $t0,0($sp)
-addiu $sp,$sp,4
-la $t1,label_37_v6
+la $t1,label_20_v1
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
@@ -287,7 +283,11 @@ la $t1,label_46_v8
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_20_v1
+la $t1,label_29_v5
+sw $t0,0($t1)
+lw $t0,0($sp)
+addiu $sp,$sp,4
+la $t1,label_27_v4
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
@@ -295,15 +295,15 @@ la $t1,label_38_v3
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_29_v5
+la $t1,label_21_v0
+sw $t0,0($t1)
+lw $t0,0($sp)
+addiu $sp,$sp,4
+la $t1,label_37_v6
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
 la $t1,label_54_v10
-sw $t0,0($t1)
-lw $t0,0($sp)
-addiu $sp,$sp,4
-la $t1,label_21_v0
 sw $t0,0($t1)
 # Original instruction: addiu $sp,$fp,-4
 addiu $sp,$fp,-4
@@ -322,15 +322,15 @@ syscall
 
 .data
 # Allocated labels for virtual registers
+label_62_v11:
+.space 4
 label_61_v12:
 .space 4
 label_74_v17:
 .space 4
-label_62_v11:
+label_69_v15:
 .space 4
 label_70_v14:
-.space 4
-label_69_v15:
 .space 4
 
 .text
@@ -348,6 +348,10 @@ sw $ra,0($sp)
 # Original instruction: addiu $sp,$fp,-8
 addiu $sp,$fp,-8
 # Original instruction: pushRegisters
+la $t0,label_62_v11
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
 la $t0,label_61_v12
 lw $t0,0($t0)
 addiu $sp,$sp,-4
@@ -356,15 +360,11 @@ la $t0,label_74_v17
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_62_v11
+la $t0,label_69_v15
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
 la $t0,label_70_v14
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_69_v15
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -450,15 +450,11 @@ sw $t5,4($fp)
 # Original instruction: popRegisters
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_69_v15
-sw $t0,0($t1)
-lw $t0,0($sp)
-addiu $sp,$sp,4
 la $t1,label_70_v14
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_62_v11
+la $t1,label_69_v15
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
@@ -467,6 +463,10 @@ sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
 la $t1,label_61_v12
+sw $t0,0($t1)
+lw $t0,0($sp)
+addiu $sp,$sp,4
+la $t1,label_62_v11
 sw $t0,0($t1)
 # Original instruction: addiu $sp,$fp,-4
 addiu $sp,$fp,-4
@@ -483,13 +483,13 @@ jr $ra
 
 .data
 # Allocated labels for virtual registers
-label_81_v19:
+label_94_v24:
 .space 4
 label_89_v22:
 .space 4
-label_94_v24:
-.space 4
 label_82_v18:
+.space 4
+label_81_v19:
 .space 4
 label_90_v21:
 .space 4
@@ -509,7 +509,7 @@ sw $ra,0($sp)
 # Original instruction: addiu $sp,$fp,-8
 addiu $sp,$fp,-8
 # Original instruction: pushRegisters
-la $t0,label_81_v19
+la $t0,label_94_v24
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -517,11 +517,11 @@ la $t0,label_89_v22
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_94_v24
+la $t0,label_82_v18
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_82_v18
+la $t0,label_81_v19
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -615,11 +615,11 @@ la $t1,label_90_v21
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_82_v18
+la $t1,label_81_v19
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_94_v24
+la $t1,label_82_v18
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
@@ -627,7 +627,7 @@ la $t1,label_89_v22
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_81_v19
+la $t1,label_94_v24
 sw $t0,0($t1)
 # Original instruction: addiu $sp,$fp,-4
 addiu $sp,$fp,-4
@@ -646,27 +646,25 @@ jr $ra
 # Allocated labels for virtual registers
 label_101_v26:
 .space 4
-label_109_v30:
-.space 4
-label_112_v28:
-.space 4
-label_108_v29:
+label_111_v30:
 .space 4
 label_102_v25:
 .space 4
-label_120_v35:
+label_120_v29:
 .space 4
-label_134_v37:
+label_135_v35:
 .space 4
-label_139_v39:
+label_121_v28:
 .space 4
-label_127_v33:
+label_134_v36:
 .space 4
-label_111_v31:
+label_112_v31:
 .space 4
-label_126_v34:
+label_114_v32:
 .space 4
-label_135_v36:
+label_127_v34:
+.space 4
+label_139_v38:
 .space 4
 
 .text
@@ -688,15 +686,7 @@ la $t0,label_101_v26
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_109_v30
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_112_v28
-lw $t0,0($t0)
-addiu $sp,$sp,-4
-sw $t0,0($sp)
-la $t0,label_108_v29
+la $t0,label_111_v30
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -704,31 +694,35 @@ la $t0,label_102_v25
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_120_v35
+la $t0,label_120_v29
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_134_v37
+la $t0,label_135_v35
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_139_v39
+la $t0,label_121_v28
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_127_v33
+la $t0,label_134_v36
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_111_v31
+la $t0,label_112_v31
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_126_v34
+la $t0,label_114_v32
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
-la $t0,label_135_v36
+la $t0,label_127_v34
+lw $t0,0($t0)
+addiu $sp,$sp,-4
+sw $t0,0($sp)
+la $t0,label_139_v38
 lw $t0,0($t0)
 addiu $sp,$sp,-4
 sw $t0,0($sp)
@@ -763,107 +757,82 @@ la $t4,label_102_v25
 lw $t4,0($t4)
 sw $t5,0($t4)
 # Copy End
-# >>>Assign<<<: INT
-# >>Get VAR Addr<<
-# Original instruction: addiu v28,$fp,8
-addiu $t5,$fp,8
-la $t0,label_112_v28
-sw $t5,0($t0)
-# >>Get VAL<<
-# Original instruction: addiu v29,$fp,8
-addiu $t5,$fp,8
-la $t0,label_108_v29
-sw $t5,0($t0)
-# Original instruction: lw v29,0(v29)
-la $t4,label_108_v29
-lw $t4,0($t4)
-lw $t4,0($t4)
-la $t0,label_108_v29
-sw $t4,0($t0)
-# Original instruction: li v30,2
-li $t5,2
-la $t0,label_109_v30
-sw $t5,0($t0)
-# Original instruction: add v31,v29,v30
-la $t5,label_108_v29
-lw $t5,0($t5)
-la $t4,label_109_v30
-lw $t4,0($t4)
-add $t3,$t5,$t4
-la $t0,label_111_v31
-sw $t3,0($t0)
-# >>Start Copy<<
-# Original instruction: sw v31,0(v28)
-la $t5,label_111_v31
-lw $t5,0($t5)
-la $t4,label_112_v28
-lw $t4,0($t4)
-sw $t5,0($t4)
-# Copy End
 # Execute getAndSetA
 # >>>Instance FunCall pushing this<<<
-# Original instruction: lw v34,12($fp)
+# Original instruction: lw v29,12($fp)
 lw $t5,12($fp)
-la $t0,label_126_v34
+la $t0,label_120_v29
 sw $t5,0($t0)
-# Original instruction: addiu v34,v34,16
-la $t4,label_126_v34
+# Original instruction: addiu v29,v29,16
+la $t4,label_120_v29
 lw $t4,0($t4)
 addiu $t4,$t4,16
-la $t0,label_126_v34
+la $t0,label_120_v29
 sw $t4,0($t0)
 # Original instruction: addiu $sp,$sp,-4
 addiu $sp,$sp,-4
-# Original instruction: sw v34,0($sp)
-la $t5,label_126_v34
+# Original instruction: sw v29,0($sp)
+la $t5,label_120_v29
 lw $t5,0($t5)
 sw $t5,0($sp)
 # >>>This Pushed<<<
 # >>>Retrieving arg val<<<: INT
-# Original instruction: addiu v35,$fp,8
+# Original instruction: addiu v30,$fp,8
 addiu $t5,$fp,8
-la $t0,label_120_v35
+la $t0,label_111_v30
 sw $t5,0($t0)
-# Original instruction: lw v35,0(v35)
-la $t4,label_120_v35
+# Original instruction: lw v30,0(v30)
+la $t4,label_111_v30
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_120_v35
+la $t0,label_111_v30
 sw $t4,0($t0)
+# Original instruction: li v31,2
+li $t5,2
+la $t0,label_112_v31
+sw $t5,0($t0)
+# Original instruction: add v32,v30,v31
+la $t5,label_111_v30
+lw $t5,0($t5)
+la $t4,label_112_v31
+lw $t4,0($t4)
+add $t3,$t5,$t4
+la $t0,label_114_v32
+sw $t3,0($t0)
 # >>>Reserving Stack size for Args<<<
 # Original instruction: addiu $sp,$sp,-4
 addiu $sp,$sp,-4
-# Original instruction: sw v35,0($sp)
-la $t5,label_120_v35
+# Original instruction: sw v32,0($sp)
+la $t5,label_114_v32
 lw $t5,0($t5)
 sw $t5,0($sp)
 # # >>>Arg Pushed<<<: INT ended
 # >>>Reserver Stack size for Return VAL<<<: 4
 # Original instruction: addiu $sp,$sp,-4
 addiu $sp,$sp,-4
-# Original instruction: lw v34,12($fp)
+# Original instruction: lw v29,12($fp)
 lw $t5,12($fp)
-la $t0,label_126_v34
+la $t0,label_120_v29
 sw $t5,0($t0)
-# Original instruction: lw v34,0(v34)
-la $t4,label_126_v34
+# Original instruction: lw v29,0(v29)
+la $t4,label_120_v29
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_126_v34
+la $t0,label_120_v29
 sw $t4,0($t0)
-# Original instruction: lw v34,0(v34)
-la $t4,label_126_v34
+# Original instruction: lw v29,0(v29)
+la $t4,label_120_v29
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_126_v34
+la $t0,label_120_v29
 sw $t4,0($t0)
-# Original instruction: jalr v34
-la $t5,label_126_v34
+# Original instruction: jalr v29
+la $t5,label_120_v29
 lw $t5,0($t5)
 jalr $t5
-# Original instruction: lw v33,0($sp)
+# Original instruction: lw v28,0($sp)
 lw $t5,0($sp)
-la $t0,label_127_v33
+la $t0,label_121_v28
 sw $t5,0($t0)
 # Original instruction: addiu $sp,$sp,4
 addiu $sp,$sp,4
@@ -872,82 +841,117 @@ addiu $sp,$sp,4
 # Original instruction: addiu $sp,$sp,4
 addiu $sp,$sp,4
 # >>>>>>>>>Return From getAndSetA
+# Execute print_i
+# >>>Retrieving arg val<<<: INT
+# Original instruction: lw v34,12($fp)
+lw $t5,12($fp)
+la $t0,label_127_v34
+sw $t5,0($t0)
+# Original instruction: addiu v34,v34,20
+la $t4,label_127_v34
+lw $t4,0($t4)
+addiu $t4,$t4,20
+la $t0,label_127_v34
+sw $t4,0($t0)
+# Original instruction: lw v34,0(v34)
+la $t4,label_127_v34
+lw $t4,0($t4)
+lw $t4,0($t4)
+la $t0,label_127_v34
+sw $t4,0($t0)
+# >>>Reserving Stack size for Args<<<
+# Original instruction: addiu $sp,$sp,-4
+addiu $sp,$sp,-4
+# Original instruction: sw v34,0($sp)
+la $t5,label_127_v34
+lw $t5,0($t5)
+sw $t5,0($sp)
+# # >>>Arg Pushed<<<: INT ended
+# Original instruction: jal print_i
+jal print_i
+# Original instruction: addiu $sp,$sp,4
+addiu $sp,$sp,4
+# >>>>>>>>>Return From print_i
 # >>>Assign<<<: INT
 # >>Get VAR Addr<<
-# Original instruction: lw v36,12($fp)
+# Original instruction: lw v35,12($fp)
 lw $t5,12($fp)
-la $t0,label_135_v36
+la $t0,label_135_v35
 sw $t5,0($t0)
-# Original instruction: addiu v36,v36,4
-la $t4,label_135_v36
+# Original instruction: addiu v35,v35,4
+la $t4,label_135_v35
 lw $t4,0($t4)
 addiu $t4,$t4,4
-la $t0,label_135_v36
+la $t0,label_135_v35
 sw $t4,0($t0)
 # >>Get VAL<<
-# Original instruction: addiu v37,$fp,8
+# Original instruction: addiu v36,$fp,8
 addiu $t5,$fp,8
-la $t0,label_134_v37
+la $t0,label_134_v36
 sw $t5,0($t0)
-# Original instruction: lw v37,0(v37)
-la $t4,label_134_v37
+# Original instruction: lw v36,0(v36)
+la $t4,label_134_v36
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_134_v37
+la $t0,label_134_v36
 sw $t4,0($t0)
 # >>Start Copy<<
-# Original instruction: sw v37,0(v36)
-la $t5,label_134_v37
+# Original instruction: sw v36,0(v35)
+la $t5,label_134_v36
 lw $t5,0($t5)
-la $t4,label_135_v36
+la $t4,label_135_v35
 lw $t4,0($t4)
 sw $t5,0($t4)
 # Copy End
 # >>>Returning Value<<<
-# Original instruction: addiu v39,$fp,-8
+# Original instruction: addiu v38,$fp,-8
 addiu $t5,$fp,-8
-la $t0,label_139_v39
+la $t0,label_139_v38
 sw $t5,0($t0)
-# Original instruction: lw v39,0(v39)
-la $t4,label_139_v39
+# Original instruction: lw v38,0(v38)
+la $t4,label_139_v38
 lw $t4,0($t4)
 lw $t4,0($t4)
-la $t0,label_139_v39
+la $t0,label_139_v38
 sw $t4,0($t0)
 # >>>Copy Value<<<
-# Original instruction: sw v39,4($fp)
-la $t5,label_139_v39
+# Original instruction: sw v38,4($fp)
+la $t5,label_139_v38
 lw $t5,0($t5)
 sw $t5,4($fp)
 # >>>Returned<<<
 # Original instruction: popRegisters
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_135_v36
+la $t1,label_139_v38
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_126_v34
+la $t1,label_127_v34
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_111_v31
+la $t1,label_114_v32
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_127_v33
+la $t1,label_112_v31
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_139_v39
+la $t1,label_134_v36
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_134_v37
+la $t1,label_121_v28
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_120_v35
+la $t1,label_135_v35
+sw $t0,0($t1)
+lw $t0,0($sp)
+addiu $sp,$sp,4
+la $t1,label_120_v29
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
@@ -955,15 +959,7 @@ la $t1,label_102_v25
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4
-la $t1,label_108_v29
-sw $t0,0($t1)
-lw $t0,0($sp)
-addiu $sp,$sp,4
-la $t1,label_112_v28
-sw $t0,0($t1)
-lw $t0,0($sp)
-addiu $sp,$sp,4
-la $t1,label_109_v30
+la $t1,label_111_v30
 sw $t0,0($t1)
 lw $t0,0($sp)
 addiu $sp,$sp,4

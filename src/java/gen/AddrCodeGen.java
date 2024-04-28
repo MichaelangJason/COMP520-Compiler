@@ -42,30 +42,32 @@ public class AddrCodeGen extends CodeGen {
                 if (v.isClassField()) {
                     // first get address of this from fundecl associated with varexpr
                     int offset = 4 + v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum() + v.fd.returnSize();
-                    currSec.emit(OpCode.LW, resReg, Arch.fp, offset); // assume pushed in accurate address
+                    currSec.emit(OpCode.LW, resReg, Arch.fp, offset); // assume pushed in correct address
                     // currSec.emit(OpCode.LW, resReg, resReg, 0);
                     
                     // get the corresponding classDecl offset
-                    String fieldName = v.name;
-                    ClassTypeDecl ctd = v.fd.ctd;
-                    offset = 4;
+                    // String fieldName = v.name;
+                    ClassTypeDecl invokeCtd = v.fd.ctd;
+                    ClassTypeDecl targetCtd = v.vd.ctd;
+                    offset = v.vd.clsOffset;
 
-                    // while (ctd != null) {
-                    //     // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
-                    //     int innerOffset = 0;
-                    //     for (VarDecl vd: ctd.vardecls) {
-                    //         if (vd.name.equals(fieldName)) {
-                    //             offset += innerOffset;
-                    //             break;
-                    //         }
-                    //         innerOffset += AsmHelper.paddedSize(vd.getSize());
-                    //     }
-                    //     // offset += ctd.vTableSectionSize();
-                    //     ctd = ctd.parentDecl;
-                    // }
+                    while (invokeCtd != null) {
+                        // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
+                        // int innerOffset = 0;
+                        // for (VarDecl vd: invokeCtd.vardecls) {
+                        //     if (vd.name.equals(fieldName)) {
+                        //         offset += innerOffset;
+                        //         break;
+                        //     }
+                        //     innerOffset += AsmHelper.paddedSize(vd.getSize());
+                        // }
+                        if (invokeCtd.equals(targetCtd)) break;
+                        offset += invokeCtd.vTableSectionSize();
+                        invokeCtd = invokeCtd.parentDecl;
+                    }
                     
                     // get clsOffset from there
-                    currSec.emit(OpCode.ADDIU, resReg, resReg, v.vd.clsOffset);
+                    currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
                 } else {
                     if (v.vd.fpOffset == -1) {
                         currSec.emit(OpCode.LA, resReg, v.vd.label);
@@ -129,17 +131,20 @@ public class AddrCodeGen extends CodeGen {
                     currSec.emit(OpCode.LW, resReg, resReg, 0);
                     ClassTypeDecl ctd = ((ClassType) fldexp.structName.type).ctd;
                     int offset = 4; // 4 for virtual table pointer
+                    boolean found = false;
                     while (ctd != null) {
                         // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
                         int innerOffset = 0;
                         for (VarDecl vd: ctd.vardecls) {
                             if (vd.name.equals(fldexp.fieldName)) {
                                 offset += innerOffset;
+                                found = true;
                                 break;
                             }
                             innerOffset += AsmHelper.paddedSize(vd.getSize());
                         }
-                        // offset += ctd.vTableSectionSize();
+                        if (found) break;
+                        offset += ctd.vTableSectionSize();
                         ctd = ctd.parentDecl;
                     }
                     

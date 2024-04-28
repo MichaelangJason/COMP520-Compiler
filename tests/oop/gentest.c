@@ -31,6 +31,7 @@ class C extends B {
         int temp;
         temp = c;
         getAndSetA(val + 2);
+        print_i(a);
         // getAndSetB(val + 4);
 
         c = val;
