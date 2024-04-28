@@ -33,8 +33,8 @@ public final class ClassTypeDecl extends Decl {
     }
 
     public LinkedHashMap<String, FunDecl> allFds() {
-        List<FunDecl> fds = new ArrayList();
-        List<ClassTypeDecl> ctdlist = new ArrayList();
+        List<FunDecl> fds = new ArrayList<>();
+        List<ClassTypeDecl> ctdlist = new ArrayList<>();
 
         ctdlist.add(this);
         ClassTypeDecl parent = this.parentDecl;

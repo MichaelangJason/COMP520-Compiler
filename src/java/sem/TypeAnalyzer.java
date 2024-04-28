@@ -7,7 +7,7 @@ import ast.*;
 
 public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
-	public Type visit(ASTNode node) {
+	public Type visit(ASTNode node, ASTNode prev) {
 		return switch(node) {
 			case null -> {
 				throw new IllegalStateException("Unexpected null value");
@@ -15,13 +15,13 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case Block b -> {
 				for (ASTNode c : b.children())
-					visit(c);
+					visit(c, prev);
 				yield BaseType.NONE;
 			}
 
 			case FunDecl fd -> {
 				// to complete
-				visit(fd.block);
+				visit(fd.block, prev);
 				yield fd.type;
 			}
 
@@ -31,7 +31,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 
 			case Program p -> {
 				// to complete
-				for (ASTNode n: p.children()) visit(n);
+				for (ASTNode n: p.children()) visit(n, prev);
 				yield BaseType.NONE;
 			}
 
@@ -53,7 +53,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case ClassTypeDecl ctd -> {
-				ctd.children().forEach(this::visit);
+				ctd.children().forEach(n -> visit(n, prev));
 				yield ctd.type; // to chagne
 			}
 
@@ -68,8 +68,8 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				if (args.size() != declParams.size()) error("[Type Analyzer] number of args unmatched: "+fc.name);
 				else {
 					for (int i = 0; i < args.size(); i++) {
-						Type argT = visit(args.get(i));
-						Type declT = visit(declParams.get(i));
+						Type argT = visit(args.get(i), prev);
+						Type declT = visit(declParams.get(i), prev);
 						if (!argT.equals(declT)) error("[Type Analyzer] args type unmatched "+fc.name);
 					}
 				}
@@ -83,8 +83,8 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case BinOp bo -> {
-				Type lhsT = visit(bo.lhs);
-				Type rhsT = visit(bo.rhs);
+				Type lhsT = visit(bo.lhs, prev);
+				Type rhsT = visit(bo.rhs, prev);
 
 				Type returnType;
 
@@ -135,8 +135,8 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case ArrayAccessExpr arraccexpr -> {
-				Type lhsT = visit(arraccexpr.varName);
-				Type rhsT = visit(arraccexpr.idx);
+				Type lhsT = visit(arraccexpr.varName, prev);
+				Type rhsT = visit(arraccexpr.idx, prev);
 
 				if (!(lhsT instanceof ArrayType || lhsT instanceof PointerType || rhsT != BaseType.INT)) {
 					error("[Type Analyzer] ArrayAccessUnmatched: "+lhsT+","+rhsT);
@@ -159,7 +159,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					error("[Type Analyzer] FieldAccess lvalues missing");
 					yield BaseType.UNKNOWN;
 				} else {
-					Type fieldT = visit(exp);
+					Type fieldT = visit(exp, prev);
 
 					// check type
 					if (!(fieldT instanceof StructType || fieldT instanceof ClassType)) {
@@ -204,7 +204,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			} 
 
 			case ValueAtExpr vexpr -> {
-				Type exprT = visit(vexpr.expr);
+				Type exprT = visit(vexpr.expr, prev);
 				if (!(exprT instanceof PointerType)) {
 					error("[Type Analyzer] ValueAtExpr Wrong");
 					vexpr.type = BaseType.UNKNOWN;
@@ -215,14 +215,14 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case AddressOfExpr addexp -> {
-				Type exprT = visit(addexp.expr);
+				Type exprT = visit(addexp.expr, prev);
 				addexp.type = new PointerType(exprT);
 				yield addexp.type;
 			}
 
 			case TypecastExpr tpcast -> {
 				Type castToType = tpcast.castToType;
-				Type castFromType = visit(tpcast.expr);
+				Type castFromType = visit(tpcast.expr, prev);
 
 				tpcast.type = BaseType.UNKNOWN;
 				if (castFromType == BaseType.CHAR && castToType == BaseType.INT) {
@@ -276,13 +276,13 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 					yield assi.type;
 				}
 
-				Type lhsT = visit(assi.lhs);
+				Type lhsT = visit(assi.lhs, prev);
 				if (lhsT == BaseType.VOID || lhsT instanceof ArrayType) {
 					error("[Type Analyzer] Assignment unaccepted type");
 					yield assi.type;
 				}
 
-				Type rhsT = visit(assi.rhs);
+				Type rhsT = visit(assi.rhs, prev);
 				if (!lhsT.equals(rhsT)) {
 					error("[Type Analyzer] Assignment Type Unmatched: "+lhsT+" <-> "+rhsT);
 					yield assi.type;
@@ -293,33 +293,34 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case While wl -> {
-				Type condT = visit(wl.expr);
+				Type condT = visit(wl.expr, prev);
 				if (condT != BaseType.INT) {
 					error("[Type Analyzer] While cond unmatched");
 					yield BaseType.UNKNOWN;
 				}
 				else {
-					visit(wl.stmt);
+					visit(wl.stmt, prev);
 					yield BaseType.NONE;
 				}
 			}
 
 			case If i -> {
-				Type condT = visit(i.expr);
+				Type condT = visit(i.expr, prev);
 				if (condT != BaseType.INT) {
 					error("[Type Analyzer] While cond unmatched");
 					yield BaseType.UNKNOWN;
 				} else {
-					visit(i.ifBranch);
-					if (i.elseBranch != null) visit(i.elseBranch);
+					visit(i.ifBranch, prev);
+					if (i.elseBranch != null) visit(i.elseBranch, prev);
 					yield BaseType.NONE;
 				}
 			}
 
 			case Return rtn -> {
+				if (rtn.fd == null) yield BaseType.UNKNOWN;
 				Type declReturnType = rtn.fd.type;
 
-				Type returnType = rtn.children().isEmpty() ? BaseType.VOID : visit(rtn.expr);
+				Type returnType = rtn.children().isEmpty() ? BaseType.VOID : visit(rtn.expr, prev);
 				if (returnType.equals(declReturnType)) yield BaseType.NONE;
 				else {
 					error("[Type Analyzer] Return type unmatched: "+declReturnType+","+returnType);
@@ -333,7 +334,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case InstanceFunCallExpr ifc -> {
-				Type classType = visit(ifc.classObj);
+				Type classType = visit(ifc.classObj, prev);
 
 				if (!(classType instanceof ClassType) || ((ClassType) classType).ctd == null) {
 					error("[Type Analyzer] instance funcall class undefined");
@@ -374,8 +375,8 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 				}
 				else {
 					for (int i = 0; i < args.size(); i++) {
-						Type argT = visit(args.get(i));
-						Type declT = visit(declParams.get(i));
+						Type argT = visit(args.get(i), prev);
+						Type declT = visit(declParams.get(i), prev);
 						if (!argT.equals(declT)) {
 							error("[Type Analyzer] args type unmatched "+fc.name);
 							yield BaseType.UNKNOWN;
@@ -392,7 +393,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 			
 			default -> { 
-				for (ASTNode n: node.children()) visit(n);
+				for (ASTNode n: node.children()) visit(n, prev);
 				yield BaseType.NONE; 
 			}
 		};

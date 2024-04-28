@@ -22,7 +22,7 @@ public class ExprCodeGen extends CodeGen {
         this.asmProg = asmProg;
     }
 
-    public Register visit(Expr e, Expr... funcall) {
+    public Register visit(Expr e) {
         Section currSec = asmProg.getCurrentSection();
         return switch (e) {
 
@@ -308,6 +308,9 @@ public class ExprCodeGen extends CodeGen {
     private Register funcallGen(Section currSec, Expr funcall) {
         if (!(funcall instanceof FunCallExpr || funcall instanceof InstanceFunCallExpr)) return Virtual.create();
 
+        boolean isInstanceFuncall = funcall instanceof InstanceFunCallExpr || ((FunCallExpr) funcall).fd.isClassFunction();
+        boolean isImplicitFuncall = isInstanceFuncall && funcall instanceof FunCallExpr;
+
         FunCallExpr fc = funcall instanceof FunCallExpr ? (FunCallExpr) funcall: ((InstanceFunCallExpr) funcall).fc;
 
         Type returnType = fc.fd.type;
@@ -317,23 +320,35 @@ public class ExprCodeGen extends CodeGen {
         Register thisAddrReg = null;
 
         // similar to FunCallExpr, but pass an extra "this"
-        if (funcall instanceof InstanceFunCallExpr) {
+        if (isInstanceFuncall) {
             currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
-            // push this onto stack
-            thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
-            // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
-            // based on type and funcall related, cast to corresponding type
-            InstanceFunCallExpr ifc = (InstanceFunCallExpr) funcall;
-            ClassType clsType = (ClassType) ifc.classObj.type;
-            ClassTypeDecl currCtd = clsType.ctd;
-            ClassTypeDecl targetCtd = ifc.fd.ctd;
             int castOffset = 0;
+            
+            ClassType clsType = null;
+            ClassTypeDecl currCtd = null;
+            ClassTypeDecl targetCtd = null;
+            // push this onto stack
+            if (isImplicitFuncall) {
+                // retrieve this from fp
+                clsType = (ClassType) fc.fd.ctd.type;
+                // currCtd = clsType.ctd;
 
+            } else {
+                thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
+                // based on type and funcall related, cast to corresponding type
+                InstanceFunCallExpr ifc = (InstanceFunCallExpr) funcall;
+                clsType = (ClassType) ifc.classObj.type;
+                currCtd = clsType.ctd;
+                targetCtd = ifc.fd.ctd;
+
+            }
+            
+            // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
+            
             while (!currCtd.equals(targetCtd)) {
                 castOffset += currCtd.vTableSectionSize();
                 currCtd = currCtd.parentDecl;
             }
-
             // currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0);
             currSec.emit(OpCode.ADDIU, thisAddrReg, thisAddrReg, castOffset);
 
@@ -385,7 +400,7 @@ public class ExprCodeGen extends CodeGen {
         }
 
         // jump to corresponding procedure
-        if (funcall instanceof InstanceFunCallExpr) {
+        if (isInstanceFuncall) {
             /*
              * 1. get the addr of classObj
              * 2. get virtual table pointer 
@@ -431,7 +446,7 @@ public class ExprCodeGen extends CodeGen {
         }
 
         // reset sp for extra args for InstanceFuncall
-        if (funcall instanceof InstanceFunCallExpr) currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4);        
+        if (isInstanceFuncall) currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, 4);        
 
         currSec.emit(new Comment(">>>>>>>>>Return From "+fc.name));
 

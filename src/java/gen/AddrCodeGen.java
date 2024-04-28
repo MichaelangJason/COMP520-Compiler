@@ -32,7 +32,7 @@ public class AddrCodeGen extends CodeGen {
         this.currSec = asmProg.getCurrentSection();
     }
 
-    public Register visit(Expr e, Expr... funcall) {
+    public Register visit(Expr e) {
 
         return switch(e) {
             case VarExpr v -> {

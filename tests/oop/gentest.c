@@ -1,58 +1,64 @@
+int global;
+
 class A {
     int a;
-    // void test() {
-    //     a = 10;
-    //     // print_i(a);
-    // }
-    // void aa() {
-    //     print_s((char *) "aa\n");
-    // }
-    void setA(int val) {
+
+    int getAndSetA(int val) {
+        int temp;
+        temp = a;
+
         a = val;
-    }
-    int getA() {
-        return a;
+        return temp;
     }
 }
 
 class B extends A {
     int b;
-    // void test() {
-    //     a = 9;
-    //     // print_i(a);
-    // }
-    void bb() {
-        print_s((char *) "bb\n");
-    }
-    int getB() {
-        return b;
+
+    int getAndSetB(int val) {
+        int temp;
+        temp = b;
+
+        b = val;
+        return temp;
     }
 }
 
 class C extends B {
     int c;
-    // void test() {
-    //     a = 67;
-    // }
-    void cc() {
-        print_s((char *) "cc\n");
-    }
-    int getC() {
-        return c;
+
+    int getAndSetC(int val) {
+        int temp;
+        temp = c;
+        getAndSetA(val);
+        getAndSetB(val);
+
+        c = val;
+        return temp;
     }
 }
 
 void main() {
-    class A a;
+    // class A a;
     // class B b;
     class C c;
-    a = (class A) new class C();
+    // a = (class A) new class C();
+    c = new class C();
     // a.a = 10;
+
+
+    // a.setA(global);
+    // print_i(c.getAndSetA(1));
+    // print_i(c.getAndSetB(2));
+    // print_i(c.getAndSetC(3));
+
+    // print_i(c.getAndSetA(3));
+    // print_i(c.getAndSetB(2));
+    // print_i(c.getAndSetC(1));
+    // global = -1;
     // a.test();
     // print_i(a.getA());
 
-    a.setA(10);
-    print_i(a.getA());
 
     // a.aa();
     // c = new class C();
