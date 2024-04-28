@@ -1,9 +1,14 @@
 package gen;
 
+import java.sql.Struct;
+
 import ast.AddressOfExpr;
 import ast.ArrayAccessExpr;
+import ast.ClassType;
+import ast.ClassTypeDecl;
 import ast.Expr;
 import ast.FieldAccessExpr;
+import ast.FunCallExpr;
 import ast.StructType;
 import ast.StructTypeDecl;
 import ast.ValueAtExpr;
@@ -27,16 +32,36 @@ public class AddrCodeGen extends CodeGen {
         this.currSec = asmProg.getCurrentSection();
     }
 
-    public Register visit(Expr e) {
+    public Register visit(Expr e, Expr... funcall) {
 
         return switch(e) {
             case VarExpr v -> {
                 Register resReg = Virtual.create();
-                
-                if (v.vd.fpOffset == -1) {
-                    currSec.emit(OpCode.LA, resReg, v.vd.label);
+
+                // if v is a Class field (accessing class field in InstanceFuncall), load from this
+                if (v.isClassField()) {
+                    // first get address of this from fundecl associated with varexpr
+                    int offset = v.fd.params.stream().mapToInt(exp -> AsmHelper.paddedSize(exp.type.getSize())).sum();
+                    currSec.emit(OpCode.LW, resReg, Arch.fp, offset);
+                    
+                    // get the corresponding classDecl offset
+                    String fieldName = v.name;
+                    ClassTypeDecl ctd = v.fd.ctd;
+                    offset = 0;
+                    while (ctd != null) {
+                        if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fieldName))) break;
+                        offset += ctd.vTableSectionSize();
+                        ctd = ctd.parentDecl;
+                    }
+                    
+                    // get clsOffset from there
+                    currSec.emit(OpCode.ADDIU, resReg, resReg, offset + v.vd.clsOffset);
                 } else {
-                    currSec.emit(OpCode.ADDIU, resReg, Arch.fp, v.vd.fpOffset);
+                    if (v.vd.fpOffset == -1) {
+                        currSec.emit(OpCode.LA, resReg, v.vd.label);
+                    } else {
+                        currSec.emit(OpCode.ADDIU, resReg, Arch.fp, v.vd.fpOffset);
+                    }
                 }
 
                 yield resReg;
@@ -69,21 +94,46 @@ public class AddrCodeGen extends CodeGen {
                  // get the head of the struct to be accessed
                 Register resReg = visit(fldexp.structName);
 
-                // get type of fldExp, check if existed
-                StructTypeDecl std = ((StructType) fldexp.structName.type).std;
-                if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.fieldName)))) throw new IllegalArgumentException();
- 
-                
-                // get the offset to the target field
-                int offset = 0;
-                
-                for (VarDecl vd: std.vardecls) {
-                    if (vd.name.equals(fldexp.fieldName)) break;
-                    offset += AsmHelper.paddedSize(vd.getSize());
+                if (fldexp.structName.type instanceof StructType) {
+                    // get type of fldExp, check if existed
+                    StructTypeDecl std = ((StructType) fldexp.structName.type).std;
+                    if (std.vardecls.stream().noneMatch((vd -> vd.name.equals(fldexp.fieldName)))) throw new IllegalArgumentException();
+
+
+                    // get the offset to the target field
+                    int offset = 0;
+
+                    for (VarDecl vd: std.vardecls) {
+                        if (vd.name.equals(fldexp.fieldName)) break;
+                        offset += AsmHelper.paddedSize(vd.getSize());
+                    }
+
+                    // load address to resReg
+                    if (offset != 0) currSec.emit(OpCode.ADDI, resReg, resReg, offset);
+
+                } else if (fldexp.structName.type instanceof ClassType) {
+                    /*
+                     * find the corresponding classDecl
+                     */
+                    ClassTypeDecl ctd = ((ClassType) fldexp.structName.type).ctd;
+                    int offset = 4; // 4 for virtual table pointer
+                    while (ctd != null) {
+                        // if (ctd.vardecls.stream().anyMatch(vd -> vd.name.equals(fldexp.fieldName))) break;
+                        int innerOffset = 0;
+                        for (VarDecl vd: ctd.vardecls) {
+                            if (vd.name.equals(fldexp.fieldName)) {
+                                offset += innerOffset;
+                                break;
+                            }
+                            innerOffset += AsmHelper.paddedSize(vd.getSize());
+                        }
+                        offset += ctd.vTableSectionSize();
+                        ctd = ctd.parentDecl;
+                    }
+                    
+                    currSec.emit(OpCode.ADDIU, resReg, resReg, offset);
                 }
-            
-                // load address to resReg
-                if (offset != 0) currSec.emit(OpCode.ADDI, resReg, resReg, offset);
+                
 
                 yield resReg;
             }

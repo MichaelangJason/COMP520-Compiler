@@ -32,4 +32,15 @@ public final class FunDecl extends Decl {
         return this.type.getSize();
     }
 
+    // public int returnThisOffset() {
+    //     if (!this.isClassFunction()) return -1;
+
+    //     // else return total param size + 4
+    //     return 0;
+    // }
+    
+    public String classFunName() {
+        if (ctd == null) return null;
+        return "class"+ctd.name+"_"+this.name;
+    }
 }

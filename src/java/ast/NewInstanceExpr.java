@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class NewInstanceExpr extends Expr {
-    public final Type classType;
+    public final ClassType classType;
 
     public NewInstanceExpr(Type type) {
-        this.classType = type;
+        assert type instanceof ClassType;
+        this.classType = (ClassType) type;
         this.type = type;
     }
 

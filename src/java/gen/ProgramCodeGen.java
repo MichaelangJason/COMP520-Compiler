@@ -5,6 +5,7 @@ import java.util.List;
 
 import ast.BaseType;
 import ast.Block;
+import ast.ClassTypeDecl;
 import ast.FunDecl;
 import ast.PointerType;
 import ast.Program;
@@ -92,7 +93,7 @@ public class ProgramCodeGen extends CodeGen {
             if (!(d instanceof FunDecl) || !((FunDecl) d).name.equals("main")) return;
             
             FunCodeGen fcg = new FunCodeGen(asmProg);
-            fcg.visit((FunDecl) d);
+            fcg.visit((FunDecl) d, null);
         });
 
         // generate the code for each function
@@ -101,9 +102,14 @@ public class ProgramCodeGen extends CodeGen {
                 case FunDecl fd -> {
                     if (fd.name.equals("main")) return;
                     FunCodeGen fcg = new FunCodeGen(asmProg);
-                    fcg.visit(fd);
+                    fcg.visit(fd, null);
+                }
+                case ClassTypeDecl ctd -> {
+                    ctd.fundecls.forEach(fd -> {
+                        (new FunCodeGen(asmProg)).visit(fd, ctd);
+                    });
                 }
                 default -> {}// nothing to do
-            }});
+        }});
     }
 }

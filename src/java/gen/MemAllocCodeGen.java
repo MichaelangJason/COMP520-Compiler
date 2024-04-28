@@ -1,6 +1,7 @@
 package gen;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import ast.*;
 import gen.asm.AssemblyProgram;
@@ -58,8 +59,9 @@ public class MemAllocCodeGen extends CodeGen {
                  * FOR VARDECLS
                  * 
                  * offset based on allocated space "this"
+                 * vd's fp offset depends on offset
                  * 
-                 * 1. add offset of all parent "allocation size"
+                 * 1. collect all vds from leaf to root class (DEPRECATED)
                  * 2. add offset of virtual table pointer (4)
                  * 3. same as before
                  */
@@ -67,18 +69,17 @@ public class MemAllocCodeGen extends CodeGen {
                 // 2. add offset of virtual table pointer (4)
                 int vdOffset = 4;
                 // 1. add offset of all parent "allocation size"
-                ClassTypeDecl parent = ctd.parentDecl;
-                while (parent != null) {
-                    vdOffset += parent.vTableSectionSize();
-                    parent = parent.parentDecl;
-                }
+                // ClassTypeDecl parent = ctd.parentDecl;
+                // while (parent != null) {
+                //     vdOffset += parent.vTableSectionSize();
+                //     parent = parent.parentDecl;
+                // }
 
                 // same for vardecls
                 for (VarDecl vd: ctd.vardecls) {
-                    vd.fpOffset = vdOffset;
+                    vd.clsOffset = vdOffset;
                     vdOffset += AsmHelper.paddedSize(vd.getSize());
                 }
-
 
                 /*
                  * FOR FUNDECLS
@@ -103,8 +104,14 @@ public class MemAllocCodeGen extends CodeGen {
                 // }
 
 
-
-
+                // virtual table creation
+                LinkedHashMap<String, FunDecl> map = ctd.allFds();
+                Label vtableLbl = Label.get("vtable_"+ctd.name);
+                dataSection.emit(vtableLbl);
+                // emit all fds, based on funName
+                map.forEach((name, fd) -> {
+                    dataSection.emit(new Directive("word "+fd.classFunName()));
+                });
             }
 
             case FunDecl fd -> {

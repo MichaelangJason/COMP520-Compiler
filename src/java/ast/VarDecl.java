@@ -7,6 +7,7 @@ import gen.asm.Label;
 
 public final class VarDecl extends Decl {
     public int fpOffset = -1;
+    public int clsOffset = -1;
     public Label label;
     public ClassTypeDecl ctd = null;
 

@@ -241,9 +241,11 @@ public class NameAnalyzer extends BaseSemanticAnalyzer {
 			case VarExpr v -> {
 				Symbol s = scope.lookup(v.name);
 				// search for an existing VarSymbol
-				if (!(s instanceof VarSymbol)) { error("[Name Analyzer]Variable Undeclared: "+v.name); break; }
+				if (!(s instanceof VarSymbol)) { error("[Name Analyzer] Variable Undeclared: "+v.name); break; }
 				v.vd = ((VarSymbol) s).vd;
 				v.type = v.vd.type;
+				
+				if (prev instanceof FunDecl) v.fd = (FunDecl) prev;
 			}
 
 			case StructTypeDecl std -> {

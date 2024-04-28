@@ -15,7 +15,7 @@ public class FunCodeGen extends CodeGen {
         this.asmProg = asmProg;
     }
 
-    void visit(FunDecl fd) {
+    void visit(FunDecl fd, ClassTypeDecl ctd) {
         // Each function should be produced in its own section.
         // This is necessary for the register allocator.
         Section currSec = asmProg.newSection(AssemblyProgram.Section.Type.TEXT);
@@ -23,8 +23,12 @@ public class FunCodeGen extends CodeGen {
         /*
          * Create an unique label for the function
          * after the sem analyzer, there should be no 2 function with same name
+         * 
+         * ClassType: label will be 
          */
-        Label fnName = Label.get(fd.name);
+        
+        String funName = ctd == null ? fd.name : fd.classFunName();
+        Label fnName = Label.get(funName);
         currSec.emit(fnName);
 
         // 1) emit the prolog

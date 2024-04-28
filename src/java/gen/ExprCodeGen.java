@@ -22,7 +22,7 @@ public class ExprCodeGen extends CodeGen {
         this.asmProg = asmProg;
     }
 
-    public Register visit(Expr e) {
+    public Register visit(Expr e, Expr... funcall) {
         Section currSec = asmProg.getCurrentSection();
         return switch (e) {
 
@@ -192,8 +192,16 @@ public class ExprCodeGen extends CodeGen {
             }
 
             case TypecastExpr typeCast -> {
-                yield visit(typeCast.expr);
+                Register resReg = visit(typeCast.expr);
+
+                if (typeCast.castOffset != 0) {
+                    currSec.emit(OpCode.ADDIU, resReg, resReg, typeCast.castOffset);
+                }
+
+                yield resReg;
             }
+
+            
 
             case ValueAtExpr valexp -> {
                 // return address contained in pointer
@@ -262,6 +270,35 @@ public class ExprCodeGen extends CodeGen {
                 yield varReg;
             }
 
+            case NewInstanceExpr ni -> {
+                int allocateSize = ni.classType.getTotalAllocationSize();
+
+                // get number of bytes to allocate
+                currSec.emit(OpCode.ADDIU, Arch.a0, Arch.zero, allocateSize);
+                // load syscall
+                currSec.emit(OpCode.LI, Arch.v0, 9);
+                // perform syscall
+                currSec.emit(OpCode.SYSCALL);
+
+                // load virtual table pointers
+                //TODO
+                ClassTypeDecl ctd = ni.classType.ctd;
+                int offset = 0;
+                Register lblAddrReg = Virtual.create();
+
+                while (ctd != null) {
+                    // vtable same for all
+                    currSec.emit(OpCode.LA, lblAddrReg, Label.get("vtable_"+ni.classType.name));
+                    currSec.emit(OpCode.LW, lblAddrReg, lblAddrReg, 0);
+                    currSec.emit(OpCode.SW, lblAddrReg, Arch.v0, offset);
+
+                    offset += ctd.vTableSectionSize();
+                    ctd = ctd.parentDecl;
+                }
+                
+
+                yield Arch.v0;
+            }
             default -> {
                 throw new IllegalStateException();
             }
@@ -277,11 +314,12 @@ public class ExprCodeGen extends CodeGen {
         List<VarDecl> params = fc.fd.params;
         currSec.emit(new Comment("Execute "+fc.name));
         Register tmpReg = Virtual.create();
+        Register thisAddrReg = null;
 
         // similar to FunCallExpr, but pass an extra "this"
         if (funcall instanceof InstanceFunCallExpr) {
             // push this onto stack
-            Register thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
+            thisAddrReg = visit(((InstanceFunCallExpr) funcall).classObj); // get a pointer to the class object stored position
             currSec.emit(new Comment(">>>Instance FunCall pushing this<<<"));
             currSec.emit(OpCode.ADDIU, Arch.sp, Arch.sp, -4); // reserve size for pointer
             currSec.emit(OpCode.SW, thisAddrReg, Arch.sp, 0); // push to stack
@@ -328,7 +366,26 @@ public class ExprCodeGen extends CodeGen {
         }
 
         // jump to corresponding procedure
-        currSec.emit(OpCode.JAL, Label.get(fc.name));
+        if (funcall instanceof InstanceFunCallExpr) {
+            /*
+             * 1. get the addr of classObj
+             * 2. get virtual table pointer 
+             * 3. get the name of funcall
+             * 4. get the index of corresponding funcall
+             * 5. set offset from vTable pointer
+             * 6. jalr 
+             */
+            currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, 0); // load virtual table pointer
+
+            ClassTypeDecl ctd = fc.fd.ctd;
+            int offset = ctd.allFds().keySet().stream().toList().indexOf(fc.name);;
+
+            currSec.emit(OpCode.LW, thisAddrReg, thisAddrReg, offset * 4);
+            currSec.emit(OpCode.JALR, thisAddrReg);
+
+        } else {
+            currSec.emit(OpCode.JAL, Label.get(fc.name));
+        }
         
         // 
         if (returnType != BaseType.VOID) {

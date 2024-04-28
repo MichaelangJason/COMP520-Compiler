@@ -2,8 +2,11 @@
 // void heihei() {}
 
 class A {
-    // int a;
-    int test() {}
+    int a;
+    int test() {
+        a = 0;
+        print_i(a);
+    }
 }
 
 class B extends A {
@@ -56,8 +59,8 @@ void main() {
 
     if (a.test()) {
         test().run().run();
-
     } else {
+        c.test();
 
     }
 

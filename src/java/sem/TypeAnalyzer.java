@@ -53,6 +53,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 			}
 
 			case ClassTypeDecl ctd -> {
+				ctd.children().forEach(this::visit);
 				yield ctd.type; // to chagne
 			}
 
@@ -256,6 +257,7 @@ public class TypeAnalyzer extends BaseSemanticAnalyzer {
 								error("[Type Analyzer] Typecast ClassType Unmatched: " + castTo + " <- " + castFrom);
 								break;
 							}
+							tpcast.castOffset += castFrom.ctd.vTableSectionSize();
 							castFrom = (ClassType) castFrom.ctd.parentDecl.type;
 						}
 					}
